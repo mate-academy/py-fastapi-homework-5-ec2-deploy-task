@@ -77,7 +77,7 @@ jobs:
         run: |
           poetry run flake8 src
 
-      - name: Run movies tests
+      - name: Run profiles tests
         run: |
           poetry run pytest src/tests/test_integration/test_profiles.py
 
