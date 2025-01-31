@@ -29,6 +29,6 @@ git fetch origin --tags || handle_error "Failed to fetch tags."
 
 # Build and run containers
 
-docker compose -f docker-compose-prod.yml up -d --build || handle_error "Failed to deploy with Docker Compose."
+docker compose -f /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task/docker-compose-prod.yml up -d --build || handle_error "Failed to build and run Docker containers using docker-compose-prod.yml."
 
 echo "Deployment completed successfully."
