@@ -1,9 +1,9 @@
 name: CI Pipeline
 
 on:
-  pull_request:
+  push:
     branches:
-      - "main"
+      - main
 
 jobs:
   test-accounts:
