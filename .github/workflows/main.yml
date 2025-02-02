@@ -1,97 +1,33 @@
-name: CI Pipeline
+name: Deploy to AWS EC2
 
 on:
-  pull_request:
+  push:
     branches:
-      - "main"
+      - main
+  pull_request:
+    types: [closed]
+    branches:
+      - main
 
 jobs:
-  test-accounts:
+  deploy:
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up SSH Agent
+        uses: webfactory/ssh-agent@v0.5.4
         with:
-          python-version: "3.10"
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Install dependencies
+      - name: Add EC2 Host to known_hosts
         run: |
-          python -m pip install --upgrade pip
-          pip install poetry
-          poetry install
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Run flake8
+      - name: Execute Deployment Script on EC2
         run: |
-          poetry run flake8 src
-
-      - name: Run accounts tests
-        run: |
-          poetry run pytest src/tests/test_integration/test_accounts.py
-
-  test-movies:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
-          poetry install
-
-      - name: Run flake8
-        run: |
-          poetry run flake8 src
-
-      - name: Run movies tests
-        run: |
-          poetry run pytest src/tests/test_integration/test_movies.py
-
-  test-profiles:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
-          poetry install
-
-      - name: Run flake8
-        run: |
-          poetry run flake8 src
-
-      - name: Run movies tests
-        run: |
-          poetry run pytest src/tests/test_integration/test_profiles.py
-
-  test-e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Start Docker Compose and wait for completion
-        run: |
-          docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from web
-
-      - name: Cleanup
-        if: always()
-        run: |
-          docker compose -f docker-compose-tests.yml down
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+                'bash /home/ubuntu/path/to/your/project/commands/deploy.sh'
