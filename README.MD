@@ -2289,6 +2289,7 @@ echo "Deployment completed successfully."
 
 After ensuring that your `deploy.sh` script works correctly and that Docker Compose is updated to version 2, your CD pipeline should function seamlessly. GitHub Actions will handle deploying your application to AWS EC2 whenever changes are pushed to the `main` branch or when a pull request is merged.
 
+
 ---
 
 ### Summary
