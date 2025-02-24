@@ -1098,7 +1098,7 @@ After creating the EC2 instance, the following ports are open by default: **22 (
    - Go back to the `Instances` list.
    - Ensure that the public IP of your EC2 instance matches the Elastic IP you just created.
 
-   ![Elastic IPs](./images_aws/25_elastic_ips_7.png)
+   ![Elastic IPs](./assets/images_aws/25_elastic_ips_7.png)
 
    **Benefit:** Your EC2 instance will retain this public IP address even after reboots.
 
