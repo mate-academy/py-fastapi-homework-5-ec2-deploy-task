@@ -18,6 +18,7 @@ RUN dos2unix /commands/*.sh
 # Add execute bit to commands files
 RUN chmod +x /commands/*.sh
 
+
 # Set the entry point to our script
 ENTRYPOINT ["/commands/set_nginx_basic_auth.sh"]
 
