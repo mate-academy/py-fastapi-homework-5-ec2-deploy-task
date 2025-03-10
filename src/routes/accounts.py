@@ -40,7 +40,7 @@ router = APIRouter()
     "/register/",
     response_model=UserRegistrationResponseSchema,
     summary="User Registration",
-    description="Register a new user with an email and password.",
+    description="REGISTER A NEW USER WITH AN EMAIL AND PASSWORD.",
     status_code=status.HTTP_201_CREATED,
     responses={
         409: {
