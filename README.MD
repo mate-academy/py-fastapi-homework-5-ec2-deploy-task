@@ -1444,11 +1444,11 @@ Adding your user to the `docker` group allows you to run Docker commands without
 4. **Create `.env` Files:**
    - **Main Project Directory:**
      ```shell
-     cp .env.sample .env
+     cp .env .env
      ```
    - **Nginx Configuration Directory:**
      ```shell
-     cp docker/nginx/.env.sample docker/nginx/.env
+     cp docker/nginx/.env docker/nginx/.env
      ```
    **Comment:** Copies sample environment files to actual `.env` files. Update these files with your configuration details, including login credentials for Nginx documentation authentication.
 
