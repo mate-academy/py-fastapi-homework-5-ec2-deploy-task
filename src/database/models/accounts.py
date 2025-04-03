@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime, date, timedelta, timezone
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from sqlalchemy import (
     ForeignKey,
@@ -98,7 +98,7 @@ class UserModel(Base):
         return self.group.name == group_name
 
     @classmethod
-    def create(cls, email: str, raw_password: str, group_id: int | Mapped[int]) -> "UserModel":
+    def create(cls, email: str, raw_password: str, group_id: Union[int, Mapped[int]]) -> "UserModel":
         """
         Factory method to create a new UserModel instance.
 
@@ -211,7 +211,7 @@ class RefreshTokenModel(TokenBaseModel):
     )
 
     @classmethod
-    def create(cls, user_id: int | Mapped[int], days_valid: int, token: str) -> "RefreshTokenModel":
+    def create(cls, user_id: Union[int, Mapped[int]], days_valid: int, token: str) -> "RefreshTokenModel":
         """
         Factory method to create a new RefreshTokenModel instance.
 
