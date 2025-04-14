@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# path es2
 PROJECT_DIR="${1:-/home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task}"
 
 # Exit the script immediately if any command exits with a non-zero status
