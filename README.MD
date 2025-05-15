@@ -1,5 +1,8 @@
 ## Deploying the Project on AWS EC2
 
+### Deployed Project
+ [Link to Deployed Project](http://52.57.78.170/docs#/)
+
 Welcome to the AWS EC2 deployment guide for our project! This comprehensive tutorial will walk you through the entire process of deploying your application on an AWS EC2 instance. By following these steps, you'll set up a robust and scalable environment tailored to your project's needs.
 
 ### What You'll Learn
