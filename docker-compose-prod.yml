@@ -141,16 +141,6 @@ services:
     networks:
       - theater_network
 
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-      - /var/lib/letsencrypt:/var/lib/letsencrypt
-    command: -c "certbot renew --quiet && sleep 12h && certbot renew --quiet"
-    networks:
-      - theater_network
-
 volumes:
   postgres_theater_data:
     driver: local
