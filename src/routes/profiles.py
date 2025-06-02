@@ -9,11 +9,10 @@ from config import get_s3_storage_client, get_jwt_auth_manager
 from database import get_db
 from database.models.accounts import UserModel, UserProfileModel, GenderEnum, UserGroupModel, UserGroupEnum
 from exceptions import BaseSecurityError, S3FileUploadError
-from schemas.profiles import ProfileCreateSchema, ProfileResponseSchema
-from security.interfaces import JWTAuthManagerInterface
+from schemas.profiles import ProfileCreateRequestSchema, ProfileResponseSchema
 from security.http import get_token
+from security.interfaces import JWTAuthManagerInterface
 from storages import S3StorageInterface
-
 
 router = APIRouter()
 
@@ -25,12 +24,12 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED
 )
 async def create_profile(
-        user_id: int,
-        token: str = Depends(get_token),
-        jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
-        db: AsyncSession = Depends(get_db),
-        s3_client: S3StorageInterface = Depends(get_s3_storage_client),
-        profile_data: ProfileCreateSchema = Depends(ProfileCreateSchema.from_form)
+    user_id: int,
+    token: str = Depends(get_token),
+    jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+    db: AsyncSession = Depends(get_db),
+    s3_client: S3StorageInterface = Depends(get_s3_storage_client),
+    profile_data: ProfileCreateRequestSchema = Depends(ProfileCreateRequestSchema.as_form)
 ) -> ProfileResponseSchema:
     """
     Creates a user profile.
@@ -66,31 +65,30 @@ async def create_profile(
         )
 
     if user_id != token_user_id:
-        stmt = (
+
+        user_group = await db.scalar(
             select(UserGroupModel)
             .join(UserModel)
             .where(UserModel.id == token_user_id)
         )
-        result = await db.execute(stmt)
-        user_group = result.scalars().first()
+
         if not user_group or user_group.name == UserGroupEnum.USER:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have permission to edit this profile."
             )
 
-    stmt = select(UserModel).where(UserModel.id == user_id)
-    result = await db.execute(stmt)
-    user = result.scalars().first()
+    user = await db.scalar(select(UserModel).where(UserModel.id == user_id))
+
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or not active."
         )
 
-    stmt_profile = select(UserProfileModel).where(UserProfileModel.user_id == user.id)
-    result_profile = await db.execute(stmt_profile)
-    existing_profile = result_profile.scalars().first()
+    existing_profile = await db.scalar(
+        select(UserProfileModel).where(UserProfileModel.user_id == user.id)
+    )
     if existing_profile:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

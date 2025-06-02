@@ -1,20 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi_pagination.ext.sqlalchemy import apaginate
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from database import get_db, MovieModel
 from database import (
     CountryModel,
     GenreModel,
     ActorModel,
     LanguageModel
 )
+from database import get_db, MovieModel
+from pagination import Page, Params
 from schemas import (
-    MovieListResponseSchema,
-    MovieListItemSchema,
-    MovieDetailSchema
+    MovieDetailSchema,
+    MovieListItemSchema
 )
 from schemas.movies import MovieCreateSchema, MovieUpdateSchema
 
@@ -23,13 +24,13 @@ router = APIRouter()
 
 @router.get(
     "/movies/",
-    response_model=MovieListResponseSchema,
+    response_model=Page,
     summary="Get a paginated list of movies",
     description=(
-            "<h3>This endpoint retrieves a paginated list of movies from the database. "
-            "Clients can specify the `page` number and the number of items per page using `per_page`. "
-            "The response includes details about the movies, total pages, and total items, "
-            "along with links to the previous and next pages if applicable.</h3>"
+        "<h3>This endpoint retrieves a paginated list of movies from the database. "
+        "Clients can specify the `page` number and the number of items per page using `per_page`. "
+        "The response includes details about the movies, total pages, and total items, "
+        "along with links to the previous and next pages if applicable.</h3>"
     ),
     responses={
         404: {
@@ -43,10 +44,10 @@ router = APIRouter()
     }
 )
 async def get_movie_list(
-        page: int = Query(1, ge=1, description="Page number (1-based index)"),
-        per_page: int = Query(10, ge=1, le=20, description="Number of items per page"),
-        db: AsyncSession = Depends(get_db),
-) -> MovieListResponseSchema:
+    request: Request,
+    params: Params = Depends(),
+    db: AsyncSession = Depends(get_db),
+) -> Page:
     """
     Fetch a paginated list of movies from the database (asynchronously).
 
@@ -54,52 +55,36 @@ async def get_movie_list(
     the page number and the number of items per page. It calculates the total pages
     and provides links to the previous and next pages when applicable.
 
-    :param page: The page number to retrieve (1-based index, must be >= 1).
-    :type page: int
-    :param per_page: The number of items to display per page (must be between 1 and 20).
-    :type per_page: int
+    :param request: The FastAPI request object (provided via dependency injection).
+    :type request: Request
+    :param params: The pagination parameters (provided via dependency injection).
+    :type params: Params
     :param db: The async SQLAlchemy database session (provided via dependency injection).
     :type db: AsyncSession
 
     :return: A response containing the paginated list of movies and metadata.
-    :rtype: MovieListResponseSchema
+    :rtype: Page
 
     :raises HTTPException: Raises a 404 error if no movies are found for the requested page.
     """
-    offset = (page - 1) * per_page
-
-    count_stmt = select(func.count(MovieModel.id))
-    result_count = await db.execute(count_stmt)
-    total_items = result_count.scalar() or 0
-
-    if not total_items:
-        raise HTTPException(status_code=404, detail="No movies found.")
-
-    order_by = MovieModel.default_order_by()
-    stmt = select(MovieModel)
-    if order_by:
-        stmt = stmt.order_by(*order_by)
-
-    stmt = stmt.offset(offset).limit(per_page)
-
-    result_movies = await db.execute(stmt)
-    movies = result_movies.scalars().all()
-
-    if not movies:
-        raise HTTPException(status_code=404, detail="No movies found.")
-
-    movie_list = [MovieListItemSchema.model_validate(movie) for movie in movies]
-
-    total_pages = (total_items + per_page - 1) // per_page
-
-    response = MovieListResponseSchema(
-        movies=movie_list,
-        prev_page=f"/theater/movies/?page={page - 1}&per_page={per_page}" if page > 1 else None,
-        next_page=f"/theater/movies/?page={page + 1}&per_page={per_page}" if page < total_pages else None,
-        total_pages=total_pages,
-        total_items=total_items,
+    result = await apaginate(
+        db,
+        select(MovieModel).order_by(MovieModel.id.desc()),
+        params=params,
+        additional_data={
+            "url": request.url.path.replace('/api/v1', '', 1),
+        },
     )
-    return response
+
+    if not result.results:
+        raise HTTPException(status_code=404, detail="No movies found.")
+
+    result.results = [
+        MovieListItemSchema.model_validate(movie)
+        for movie in result.results
+    ]
+
+    return result
 
 
 @router.post(
@@ -107,10 +92,10 @@ async def get_movie_list(
     response_model=MovieDetailSchema,
     summary="Add a new movie",
     description=(
-            "<h3>This endpoint allows clients to add a new movie to the database. "
-            "It accepts details such as name, date, genres, actors, languages, and "
-            "other attributes. The associated country, genres, actors, and languages "
-            "will be created or linked automatically.</h3>"
+        "<h3>This endpoint allows clients to add a new movie to the database. "
+        "It accepts details such as name, date, genres, actors, languages, and "
+        "other attributes. The associated country, genres, actors, and languages "
+        "will be created or linked automatically.</h3>"
     ),
     responses={
         201: {
@@ -128,8 +113,8 @@ async def get_movie_list(
     status_code=201
 )
 async def create_movie(
-        movie_data: MovieCreateSchema,
-        db: AsyncSession = Depends(get_db)
+    movie_data: MovieCreateSchema,
+    db: AsyncSession = Depends(get_db)
 ) -> MovieDetailSchema:
     """
     Add a new movie to the database.
@@ -138,7 +123,7 @@ async def create_movie(
     name, release date, genres, actors, and languages. It automatically
     handles linking or creating related entities.
 
-    :param movie_data: The data required to create a new movie.
+    :param movie_data: The data is required to create a new movie.
     :type movie_data: MovieCreateSchema
     :param db: The SQLAlchemy async database session (provided via dependency injection).
     :type db: AsyncSession
@@ -240,10 +225,10 @@ async def create_movie(
     response_model=MovieDetailSchema,
     summary="Get movie details by ID",
     description=(
-            "<h3>Fetch detailed information about a specific movie by its unique ID. "
-            "This endpoint retrieves all available details for the movie, such as "
-            "its name, genre, crew, budget, and revenue. If the movie with the given "
-            "ID is not found, a 404 error will be returned.</h3>"
+        "<h3>Fetch detailed information about a specific movie by its unique ID. "
+        "This endpoint retrieves all available details for the movie, such as "
+        "its name, genre, crew, budget, and revenue. If the movie with the given "
+        "ID is not found, a 404 error will be returned.</h3>"
     ),
     responses={
         404: {
@@ -257,8 +242,8 @@ async def create_movie(
     }
 )
 async def get_movie_by_id(
-        movie_id: int,
-        db: AsyncSession = Depends(get_db),
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
 ) -> MovieDetailSchema:
     """
     Retrieve detailed information about a specific movie by its ID.
@@ -303,9 +288,9 @@ async def get_movie_by_id(
     "/movies/{movie_id}/",
     summary="Delete a movie by ID",
     description=(
-            "<h3>Delete a specific movie from the database by its unique ID.</h3>"
-            "<p>If the movie exists, it will be deleted. If it does not exist, "
-            "a 404 error will be returned.</p>"
+        "<h3>Delete a specific movie from the database by its unique ID.</h3>"
+        "<p>If the movie exists, it will be deleted. If it does not exist, "
+        "a 404 error will be returned.</p>"
     ),
     responses={
         204: {
@@ -323,8 +308,8 @@ async def get_movie_by_id(
     status_code=204
 )
 async def delete_movie(
-        movie_id: int,
-        db: AsyncSession = Depends(get_db),
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Delete a specific movie by its ID.
@@ -362,9 +347,9 @@ async def delete_movie(
     "/movies/{movie_id}/",
     summary="Update a movie by ID",
     description=(
-            "<h3>Update details of a specific movie by its unique ID.</h3>"
-            "<p>This endpoint updates the details of an existing movie. If the movie with "
-            "the given ID does not exist, a 404 error is returned.</p>"
+        "<h3>Update details of a specific movie by its unique ID.</h3>"
+        "<p>This endpoint updates the details of an existing movie. If the movie with "
+        "the given ID does not exist, a 404 error is returned.</p>"
     ),
     responses={
         200: {
@@ -386,9 +371,9 @@ async def delete_movie(
     }
 )
 async def update_movie(
-        movie_id: int,
-        movie_data: MovieUpdateSchema,
-        db: AsyncSession = Depends(get_db),
+    movie_id: int,
+    movie_data: MovieUpdateSchema,
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Update a specific movie by its ID.

@@ -35,6 +35,8 @@ aiosqlite = "^0.21.0"
 aioboto3 = "^13.4.0"
 pytest-asyncio = "^0.25.3"
 gunicorn = "^23.0.0"
+ruff = "^0.11.12"
+fastapi-pagination = "^0.13.1"
 
 
 [build-system]
