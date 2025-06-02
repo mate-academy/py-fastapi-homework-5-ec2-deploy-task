@@ -130,12 +130,24 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - web
     env_file:
       - ./docker/nginx/.env
+    networks:
+      - theater_network
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+    entrypoint: /bin/sh
+    command: -c "certbot renew --quiet && sleep 12h && certbot renew --quiet"
     networks:
       - theater_network
 
