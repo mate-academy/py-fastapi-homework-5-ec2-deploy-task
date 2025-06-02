@@ -147,7 +147,6 @@ services:
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
       - /var/lib/letsencrypt:/var/lib/letsencrypt
-    entrypoint: /bin/sh
     command: -c "certbot renew --quiet && sleep 12h && certbot renew --quiet"
     networks:
       - theater_network
