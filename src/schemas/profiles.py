@@ -4,7 +4,6 @@ from fastapi import UploadFile, HTTPException
 from pydantic import BaseModel, field_validator, HttpUrl
 from starlette import status
 
-from schemas.utils.as_form import as_form
 from validation import (
     validate_name,
     validate_image,
@@ -13,7 +12,6 @@ from validation import (
 )
 
 
-@as_form
 class ProfileCreateRequestSchema(BaseModel):
     first_name: str
     last_name: str
@@ -109,7 +107,6 @@ class ProfileCreateRequestSchema(BaseModel):
 
 class ProfileResponseSchema(BaseModel):
     id: int
-    user_id: int
     first_name: str
     last_name: str
     gender: str

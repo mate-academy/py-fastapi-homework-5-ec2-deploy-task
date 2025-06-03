@@ -1,6 +1,6 @@
 from typing import cast
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from pydantic import HttpUrl
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,7 +29,7 @@ async def create_profile(
     jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
     db: AsyncSession = Depends(get_db),
     s3_client: S3StorageInterface = Depends(get_s3_storage_client),
-    profile_data: ProfileCreateRequestSchema = Depends(ProfileCreateRequestSchema.as_form)
+    profile_data: ProfileCreateRequestSchema = Form()
 ) -> ProfileResponseSchema:
     """
     Creates a user profile.
@@ -119,7 +119,6 @@ async def create_profile(
 
     db.add(new_profile)
     await db.commit()
-    await db.refresh(new_profile)
 
     avatar_url = await s3_client.get_file_url(new_profile.avatar)
 
