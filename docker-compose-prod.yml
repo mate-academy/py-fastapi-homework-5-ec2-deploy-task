@@ -198,7 +198,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: flower_theater
-    command: "celery -A scheduler.celery_app flower --address=0.0.0.0 --broker=redis://redis_theater:6379/0"
+    command: "celery -A scheduler.celery_app flower --address=0.0.0.0"
     ports:
       - "5555:5555"
     env_file:

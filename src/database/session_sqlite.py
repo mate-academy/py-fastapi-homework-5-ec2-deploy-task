@@ -1,8 +1,9 @@
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from contextlib import asynccontextmanager, contextmanager
+from typing import AsyncGenerator, Generator
 
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
 from config import get_settings
 from database import Base
@@ -15,6 +16,15 @@ AsyncSQLiteSessionLocal = sessionmaker(  # type: ignore
     bind=sqlite_engine,
     class_=AsyncSession,
     expire_on_commit=False
+)
+
+SYNC_SQLITE_DATABASE_URL = f"sqlite:///{settings.PATH_TO_DB}"
+sync_sqlite_engine = create_engine(SYNC_SQLITE_DATABASE_URL, echo=False)
+
+SyncSQLiteSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=sync_sqlite_engine
 )
 
 
@@ -59,3 +69,28 @@ async def reset_sqlite_database() -> None:
     async with sqlite_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+
+
+def get_sync_sqlite_db() -> Generator[Session, None, None]:
+    """
+    Provide a synchronous database session.
+
+    This function returns a synchronous database session.
+
+    :return: A synchronous database session.
+    """
+    with SyncSQLiteSessionLocal() as session:
+        yield session
+
+
+@contextmanager
+def get_sync_sqlite_db_contextmanager() -> Generator[Session, None, None]:
+    """
+    Provide a synchronous database session using a context manager.
+
+    This function allows for managing the database session within a `with` statement.
+
+    :return: A synchronous database session.
+    """
+    with SyncSQLiteSessionLocal() as session:
+        yield session
