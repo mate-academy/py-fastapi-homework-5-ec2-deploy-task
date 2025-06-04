@@ -141,7 +141,7 @@ services:
     networks:
       - theater_network
 
-  # Cache Service
+    # Cache Service
   redis:
     image: redis:latest
     container_name: redis_theater
@@ -163,7 +163,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: theater-scheduler
-    command: celery -A scheduler.celery_app worker -l info
+    command: celery -A scheduler.celery_app worker --loglevel=info
     env_file:
       - .env
     depends_on:
@@ -181,7 +181,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: theater-scheduler-beat
-    command: celery -A scheduler.celery_app beat -l info -s /var/run/celerybeat-schedule
+    command: celery -A scheduler.celery_app beat --loglevel=info -s /var/run/celerybeat-schedule
     env_file:
       - .env
     depends_on:
@@ -189,6 +189,27 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
+    restart: on-failure
+    networks:
+      - theater_network
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flower_theater
+    command: "celery -A scheduler.celery_app flower --address=0.0.0.0 --broker=redis://redis_theater:6379/0"
+    ports:
+      - "5555:5555"
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      celery:
+        condition: service_started
     restart: on-failure
     networks:
       - theater_network
