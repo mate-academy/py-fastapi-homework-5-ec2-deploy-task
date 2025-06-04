@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import cast
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, BackgroundTasks, Form
 from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,8 +29,10 @@ from schemas import (
     UserLoginResponseSchema,
     UserLoginRequestSchema,
     TokenRefreshRequestSchema,
-    TokenRefreshResponseSchema
+    TokenRefreshResponseSchema,
+    ResendActivationRequestSchema
 )
+
 from security.interfaces import JWTAuthManagerInterface
 
 router = APIRouter()
@@ -66,10 +68,10 @@ router = APIRouter()
     }
 )
 async def register_user(
-        user_data: UserRegistrationRequestSchema,
-        db: AsyncSession = Depends(get_db),
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
-        settings: BaseAppSettings = Depends(get_settings)
+    user_data: UserRegistrationRequestSchema = Form(),
+    db: AsyncSession = Depends(get_db),
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+    settings: BaseAppSettings = Depends(get_settings)
 ) -> UserRegistrationResponseSchema:
     """
     Endpoint for user registration.
@@ -173,10 +175,10 @@ async def register_user(
     },
 )
 async def activate_account(
-        activation_data: UserActivationRequestSchema,
-        db: AsyncSession = Depends(get_db),
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
-        settings: BaseAppSettings = Depends(get_settings)
+    activation_data: UserActivationRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+    settings: BaseAppSettings = Depends(get_settings)
 ) -> MessageResponseSchema:
     """
     Endpoint to activate a user's account.
@@ -200,7 +202,7 @@ async def activate_account(
             - 400 Bad Request if the activation token is invalid or expired.
             - 400 Bad Request if the user account is already active.
     """
-    stmt = (
+    token_record = await db.scalar(
         select(ActivationTokenModel)
         .options(joinedload(ActivationTokenModel.user))
         .join(UserModel)
@@ -209,8 +211,6 @@ async def activate_account(
             ActivationTokenModel.token == activation_data.token
         )
     )
-    result = await db.execute(stmt)
-    token_record = result.scalars().first()
 
     now_utc = datetime.now(timezone.utc)
     if not token_record or cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc) < now_utc:
@@ -244,20 +244,102 @@ async def activate_account(
 
 
 @router.post(
+    "/activate/resend/",
+    response_model=MessageResponseSchema,
+    summary="Resend Activation Email",
+    description="Resend a new activation link if the previous one expired.",
+    status_code=status.HTTP_200_OK,
+    responses={
+        400: {
+            "description": "Bad Request - User account is already active.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "User account is already active."
+                    }
+                }
+            },
+        },
+    },
+)
+async def resend_activation_email(
+    data: ResendActivationRequestSchema,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+    settings: BaseAppSettings = Depends(get_settings)
+) -> MessageResponseSchema:
+    """
+    Endpoint to reactivate
+
+    This endpoint verifies the activation token for a user by checking that the token record exists
+    and that it has not expired. If the token is valid and the user's account is not already active,
+    the user's account is activated and the activation token is deleted. If the token is invalid, expired,
+    or if the account is already active, an HTTP 400 error is raised.
+
+    Args:
+        data (ResendActivationRequestSchema): Contains the user's email.
+        background_tasks (BackgroundTasks): Background tasks for sending emails.
+        db (AsyncSession): The asynchronous database session.
+        email_sender (EmailSenderInterface): The asynchronous email sender.
+        settings (BaseAppSettings): The application settings.
+    Returns:
+        MessageResponseSchema: A response message confirming that an email will be sent with instructions.
+
+    Raises:
+        HTTPException: If the user account is already active.
+    """
+    user = await db.scalar(select(UserModel).where(UserModel.email == data.email))
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email address."
+        )
+
+    if user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User account is already active."
+        )
+
+    await db.execute(
+        delete(ActivationTokenModel)
+        .where(ActivationTokenModel.user_id == user.id)
+    )
+
+    activation_token = ActivationTokenModel(user_id=user.id)
+    db.add(activation_token)
+    await db.commit()
+
+    activation_link = f"{settings.FRONTEND_URL}/accounts/activate/"
+
+    background_tasks.add_task(
+        email_sender.send_activation_email,
+        user.email,
+        activation_link
+    )
+
+    return MessageResponseSchema(
+        message="If you are registered, you will receive an email"
+                " with instructions.")
+
+
+@router.post(
     "/password-reset/request/",
     response_model=MessageResponseSchema,
     summary="Request Password Reset Token",
     description=(
-            "Allows a user to request a password reset token. If the user exists and is active, "
-            "a new token will be generated and any existing tokens will be invalidated."
+        "Allows a user to request a password reset token. If the user exists and is active, "
+        "a new token will be generated and any existing tokens will be invalidated."
     ),
     status_code=status.HTTP_200_OK,
 )
 async def request_password_reset_token(
-        data: PasswordResetRequestSchema,
-        db: AsyncSession = Depends(get_db),
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
-        settings: BaseAppSettings = Depends(get_settings)
+    data: PasswordResetRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+    settings: BaseAppSettings = Depends(get_settings)
 ) -> MessageResponseSchema:
     """
     Endpoint to request a password reset token.
@@ -345,10 +427,10 @@ async def request_password_reset_token(
     },
 )
 async def reset_password(
-        data: PasswordResetCompleteRequestSchema,
-        db: AsyncSession = Depends(get_db),
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
-        settings: BaseAppSettings = Depends(get_settings)
+    data: PasswordResetCompleteRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+    settings: BaseAppSettings = Depends(get_settings)
 ) -> MessageResponseSchema:
     """
     Endpoint for resetting a user's password.
@@ -463,10 +545,10 @@ async def reset_password(
     },
 )
 async def login_user(
-        login_data: UserLoginRequestSchema,
-        db: AsyncSession = Depends(get_db),
-        settings: BaseAppSettings = Depends(get_settings),
-        jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+    login_data: UserLoginRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    settings: BaseAppSettings = Depends(get_settings),
+    jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
 ) -> UserLoginResponseSchema:
     """
     Endpoint for user login.
@@ -570,9 +652,9 @@ async def login_user(
     },
 )
 async def refresh_access_token(
-        token_data: TokenRefreshRequestSchema,
-        db: AsyncSession = Depends(get_db),
-        jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+    token_data: TokenRefreshRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
 ) -> TokenRefreshResponseSchema:
     """
     Endpoint to refresh an access token.
