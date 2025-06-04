@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task
-def delete_expired_activation_tokens() -> None:
+def delete_expired_activation_tokens() -> int | None:
     with get_sync_db_contextmanager() as db:
         try:
             stmt = delete(ActivationTokenModel).where(
