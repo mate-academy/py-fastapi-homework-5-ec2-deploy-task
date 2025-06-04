@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import delete
 from sqlalchemy.exc import SQLAlchemyError
 
-from database import get_db, ActivationTokenModel
+from database import get_sync_db_contextmanager, ActivationTokenModel
 from scheduler.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @celery_app.task
 def delete_expired_activation_tokens() -> None:
-    with get_db() as db:
+    with get_sync_db_contextmanager() as db:
         try:
             stmt = delete(ActivationTokenModel).where(
                 ActivationTokenModel.expires_at < datetime.now(timezone.utc)
@@ -25,3 +25,4 @@ def delete_expired_activation_tokens() -> None:
             db.rollback()
             logger.error(f"Error deleting tokens: {e}")
     return None
+
