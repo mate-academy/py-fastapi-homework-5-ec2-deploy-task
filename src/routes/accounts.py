@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import cast
 
-from fastapi import APIRouter, Depends, status, HTTPException, BackgroundTasks, Form
+from fastapi import APIRouter, Depends, status, HTTPException, BackgroundTasks
 from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,7 +68,7 @@ router = APIRouter()
     }
 )
 async def register_user(
-    user_data: UserRegistrationRequestSchema = Form(),
+    user_data: UserRegistrationRequestSchema,
     db: AsyncSession = Depends(get_db),
     email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
     settings: BaseAppSettings = Depends(get_settings)
