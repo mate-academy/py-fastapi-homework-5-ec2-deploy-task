@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.13-alpine
 
 # Setting environment variables for Python
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -6,14 +6,18 @@ ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=off
 ENV ALEMBIC_CONFIG=/usr/src/alembic/alembic.ini
 
-# Installing dependencies
-RUN apt update && apt install -y \
+# Install system dependencies using apk
+RUN apk update && apk add --no-cache \
     gcc \
-    libpq-dev \
+    musl-dev \
+    postgresql-dev \
+    libpq \
     netcat-openbsd \
-    postgresql-client \
     dos2unix \
-    && apt clean
+    bash \
+    curl \
+    build-base \
+    && rm -rf /var/cache/apk/*
 
 # Install Poetry
 RUN python -m pip install --upgrade pip && \
@@ -27,24 +31,20 @@ COPY ./alembic.ini /usr/src/alembic/alembic.ini
 # Configure Poetry to avoid creating a virtual environment
 RUN poetry config virtualenvs.create false
 
-# Selecting a working directory
+# Set working directory to install dependencies
 WORKDIR /usr/src/poetry
 
-# Install dependencies with Poetry
-RUN poetry lock
+# Install dependencies
 RUN poetry install --no-root --only main
 
-# Selecting a working directory
+# Set working directory for application
 WORKDIR /usr/src/fastapi
 
 # Copy the source code
 COPY ./src .
 
-# Copy commands
+# Copy command scripts
 COPY ./commands /commands
 
-# Ensure Unix-style line endings for scripts
-RUN dos2unix /commands/*.sh
-
-# Add execute bit to commands files
-RUN chmod +x /commands/*.sh
+# Ensure Unix-style line endings and executable permissions for scripts
+RUN dos2unix /commands/*.sh && chmod +x /commands/*.sh

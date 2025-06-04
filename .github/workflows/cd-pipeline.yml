@@ -1,6 +1,10 @@
 name: Deploy to AWS EC2
 
 on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
   push:
     branches:
       - main
@@ -30,4 +34,4 @@ jobs:
       - name: Execute Deployment Script on EC2
         run: |
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-                'bash /home/ubuntu/path/to/your/project/commands/deploy.sh'
+                'bash /home/ubuntu/app/py-fastapi-online-cinema/commands/deploy.sh'

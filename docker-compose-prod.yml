@@ -141,12 +141,67 @@ services:
     networks:
       - theater_network
 
+  # Cache Service
+  redis:
+    image: redis:latest
+    container_name: redis_theater
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - theater_network
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: theater-scheduler
+    command: celery -A scheduler.celery_app worker -l info
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - theater_network
+
+  # Periodic tasks
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: theater-scheduler-beat
+    command: celery -A scheduler.celery_app beat -l info -s /var/run/celerybeat-schedule
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - theater_network
+
+
 volumes:
   postgres_theater_data:
     driver: local
   pgadmin_theater_data:
     driver: local
   minio_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:
