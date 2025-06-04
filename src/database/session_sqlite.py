@@ -27,6 +27,7 @@ SyncSQLiteSessionLocal = sessionmaker(
     bind=sync_sqlite_engine
 )
 
+
 async def get_sqlite_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Provide an asynchronous database session.
@@ -80,6 +81,7 @@ def get_sync_sqlite_db() -> Generator[Session, None, None]:
     """
     with SyncSQLiteSessionLocal() as session:
         yield session
+
 
 @contextmanager
 def get_sync_sqlite_db_contextmanager() -> Generator[Session, None, None]:

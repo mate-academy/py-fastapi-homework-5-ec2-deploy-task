@@ -25,4 +25,3 @@ def delete_expired_activation_tokens() -> None:
             db.rollback()
             logger.error(f"Error deleting tokens: {e}")
     return None
-

@@ -25,7 +25,6 @@ AsyncPostgresqlSessionLocal = sessionmaker(  # type: ignore
     expire_on_commit=False,
 )
 
-
 SyncPostgresqlSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
@@ -68,6 +67,7 @@ def get_sync_postgresql_db() -> Generator[Session, None, None]:
     """
     with SyncPostgresqlSessionLocal() as session:
         yield session
+
 
 @contextmanager
 def get_sync_postgresql_db_contextmanager() -> Generator[Session, None, None]:
