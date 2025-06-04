@@ -6,6 +6,7 @@ from config import get_settings
 
 settings = get_settings()
 
+
 class RedisCeleryConfig:
     def __init__(self):
         self.broker_url = settings.CELERY_BROKER_URL
