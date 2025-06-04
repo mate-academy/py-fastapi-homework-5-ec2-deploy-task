@@ -4,10 +4,11 @@ from datetime import datetime, timezone
 from sqlalchemy import delete
 from sqlalchemy.exc import SQLAlchemyError
 
-from scheduler.celery_app import celery_app
 from database import get_db, ActivationTokenModel
+from scheduler.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
 
 @celery_app.task
 def delete_expired_activation_tokens() -> None:
