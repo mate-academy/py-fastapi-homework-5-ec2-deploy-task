@@ -372,8 +372,6 @@ This directory structure is thoughtfully organized to promote maintainability, s
   - `init.sql`: Initial SQL setup script.
   - `README.MD`: Project documentation.
 
-Certainly! Below is a comprehensive explanation of your `docker-compose-prod.yml` configuration and its associated files. This section is tailored for inclusion in your project's README, providing clear insights into each service, its purpose, and how it contributes to the overall deployment.
-
 ---
 
 ## Docker Compose Configuration (`docker-compose-prod.yml`)
@@ -1498,8 +1496,6 @@ By following this guide, you have successfully deployed your project on an AWS E
    - Cloning your repository.
    - Configuring environment variables.
    - Building and running Docker containers.
-
-Certainly! Below is a comprehensive section for your `README.md` file titled **GitHub Actions**, which includes two subsections: **CI** and **CD**. The **CI** subsection incorporates the pipeline you provided, along with explanations on how to set it up. The **CD** subsection outlines the Continuous Deployment process, leveraging the deployment script and GitHub Actions workflow we discussed earlier.
 
 ---
 
