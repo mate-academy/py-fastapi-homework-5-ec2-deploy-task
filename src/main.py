@@ -6,6 +6,7 @@ from routes import (
     profiles_router
 )
 
+
 app = FastAPI(
     title="Movies homework",
     description="Description of project"
