@@ -1,0 +1,34 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: ["develop"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Connect to EC2 and Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd py-fastapi-homework-5-ec2-deploy-task
+            git pull origin develop
+
+            echo "Stopping old containers..."
+            docker compose -f docker-compose-prod.yml down
+
+            echo "Removing old images..."
+            docker system prune -af
+
+            echo "Starting new deployment..."
+            docker compose -f docker-compose-prod.yml up --build -d
+
+            echo "Deployment complete!"
