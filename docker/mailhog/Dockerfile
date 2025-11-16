@@ -1,4 +1,4 @@
-FROM golang:1.24.0-bookworm AS builder
+FROM golang:1.24.1- AS builder
 RUN go install github.com/mailhog/MailHog@v1.0.1
 
 FROM debian:bookworm-slim
