@@ -1,17 +1,17 @@
+FROM golang:1.24.1- AS builder
+RUN go install github.com/mailhog/MailHog@v1.0.1
+
 FROM debian:bookworm-slim
 
 # Install necessary dependencies
 RUN apt update && apt install -y  \
-    golang-go \
     wget \
     dos2unix \
     && apt clean
 
-# Install MailHog using Go
-RUN go install github.com/mailhog/MailHog@latest
-
 # Add Go's bin directory to the PATH to make MailHog executable globally
-ENV PATH="/root/go/bin:$PATH"
+
+COPY --from=builder /go/bin/MailHog /usr/local/bin/mailhog
 
 # Copy the commands directory into the container
 COPY commands/setup_mailhog_auth.sh /commands/setup_mailhog_auth.sh
