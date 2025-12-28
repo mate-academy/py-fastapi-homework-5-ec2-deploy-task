@@ -1,6 +1,6 @@
 services:
   db:
-    image: 'postgres:latest'
+    image: 'postgres:16'
     container_name: postgres_theater
     env_file:
       - .env
