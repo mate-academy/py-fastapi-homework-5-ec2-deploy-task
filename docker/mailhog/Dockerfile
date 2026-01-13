@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM golang:1.22
 
 # Install necessary dependencies
 RUN apt update && apt install -y  \
