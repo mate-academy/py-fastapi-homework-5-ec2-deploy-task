@@ -1,8 +1,7 @@
-FROM debian:bookworm-slim
+FROM golang:latest
 
 # Install necessary dependencies
 RUN apt update && apt install -y  \
-    golang-go \
     wget \
     dos2unix \
     && apt clean
