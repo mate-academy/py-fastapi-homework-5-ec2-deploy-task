@@ -988,7 +988,7 @@ This guide provides comprehensive instructions to deploy your project on an AWS 
    ![Application and OS Images](./assets/images_aws/06_application_and_os.png)
 
 6. **Instance Type:**
-   - Choose `t2.micro` in the `Instance type` section, again verifying the `Free tier eligible` label.
+   - Choose `t2.micro` (now there is `t3.micro`) in the `Instance type` section, again verifying the `Free tier eligible` label.
 
    ![Instance Type](./assets/images_aws/07_instance_type.png)
 
@@ -1243,7 +1243,7 @@ Since a free EC2 instance typically comes with only **1GB of RAM**, it's essenti
    **Comment:** This line ensures that the swap file is enabled at boot.
 
 4. **Save and Exit:**
-   - In Nano, press `Ctrl + O` to save and `Ctrl + X` to exit.
+   - In Nano, press `Ctrl + O` then `Enter` to save and `Ctrl + X` to exit.
 
 5. **Apply Changes:**
    ```bash
@@ -1457,7 +1457,7 @@ Adding your user to the `docker` group allows you to run Docker commands without
    **Comment:** Builds and starts the Docker containers as defined in the `docker-compose-prod.yml` file.
 
 6. **Access the Application:**
-   - Open your browser and navigate to the public IP address of your EC2 instance without specifying a port (as it's running on port 80).
+   - Open your browser and navigate to the public IP address of your EC2 instance without specifying a port (as it's running on port 80) also it should be `http` protocol instead of `https`.
    - You will be prompted to enter the login and password specified in `docker/nginx/.env`.
 
    ![Swagger Login](./assets/images_aws/36_swagger_login.png)
