@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM debian:latest
 
 # Install necessary dependencies
 RUN apt update && apt install -y  \
