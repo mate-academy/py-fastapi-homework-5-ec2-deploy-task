@@ -12,7 +12,6 @@ from storages import S3StorageInterface, S3StorageClient
 def get_settings() -> BaseAppSettings:
     """
     Retrieve the application settings based on the current environment.
-
     This function reads the 'ENVIRONMENT' environment variable (defaulting to 'developing' if not set)
     and returns a corresponding settings instance. If the environment is 'testing', it returns an instance
     of TestingSettings; otherwise, it returns an instance of Settings.
