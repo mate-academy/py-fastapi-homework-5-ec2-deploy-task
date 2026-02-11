@@ -1,50 +1,43 @@
-FROM python:3.10
+# Використовуємо легший образ
+FROM python:3.10-slim AS base
 
-# Setting environment variables for Python
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=off
-ENV ALEMBIC_CONFIG=/usr/src/alembic/alembic.ini
-
-# Installing dependencies
+# Встановлюємо необхідні пакети
 RUN apt update && apt install -y \
     gcc \
     libpq-dev \
     netcat-openbsd \
     postgresql-client \
-    dos2unix \
-    && apt clean
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
+# Налаштовуємо Python
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=off \
+    ALEMBIC_CONFIG=/usr/src/alembic/alembic.ini
+
+# Встановлюємо Poetry
 RUN python -m pip install --upgrade pip && \
     pip install poetry
 
-# Copy dependency files
-COPY ./poetry.lock /usr/src/poetry/poetry.lock
-COPY ./pyproject.toml /usr/src/poetry/pyproject.toml
-COPY ./alembic.ini /usr/src/alembic/alembic.ini
+# Створюємо директорію для коду
+WORKDIR /usr/src/app
 
-# Configure Poetry to avoid creating a virtual environment
+# Копіюємо dependency-файли
+COPY ./poetry.lock ./pyproject.toml ./
+
+# Вимикаємо створення віртуального оточення
 RUN poetry config virtualenvs.create false
 
-# Selecting a working directory
-WORKDIR /usr/src/poetry
-
-# Install dependencies with Poetry
-RUN poetry lock
+# Встановлюємо залежності без кешу
 RUN poetry install --no-root --only main
 
-# Selecting a working directory
-WORKDIR /usr/src/fastapi
-
-# Copy the source code
-COPY ./src .
-
-# Copy commands
+# Копіюємо решту коду
+COPY ./src ./
+COPY ./alembic.ini /usr/src/alembic/alembic.ini
 COPY ./commands /commands
 
-# Ensure Unix-style line endings for scripts
-RUN dos2unix /commands/*.sh
-
-# Add execute bit to commands files
+# Додаємо права на виконання скриптів
 RUN chmod +x /commands/*.sh
+
+# Запускаємо сервер
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
