@@ -1,4 +1,7 @@
-from email_validator import validate_email, EmailNotValidError
+from email_validator import (
+    validate_email,
+    EmailNotValidError,
+)
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from validators import url as validate_url
@@ -17,7 +20,7 @@ from database import (
 @pytest.mark.e2e
 @pytest.mark.order(1)
 @pytest.mark.asyncio
-async def test_registration(e2e_client, reset_db_once_for_e2e, settings, seed_user_groups, e2e_db_session):
+async def test_registration(e2e_client, reset_db_once_for_e2e, settings, seed_user_groups, e2e_db_session) -> None:
     """
     End-to-end test for user registration.
 
@@ -79,7 +82,7 @@ async def test_registration(e2e_client, reset_db_once_for_e2e, settings, seed_us
 @pytest.mark.e2e
 @pytest.mark.order(2)
 @pytest.mark.asyncio
-async def test_account_activation(e2e_client, settings, e2e_db_session):
+async def test_account_activation(e2e_client, settings, e2e_db_session) -> None:
     """
     End-to-end test for account activation.
 
@@ -154,7 +157,7 @@ async def test_account_activation(e2e_client, settings, e2e_db_session):
 @pytest.mark.e2e
 @pytest.mark.order(3)
 @pytest.mark.asyncio
-async def test_user_login(e2e_client, e2e_db_session):
+async def test_user_login(e2e_client, e2e_db_session) -> None:
     """
     End-to-end test for user login (async version).
 
@@ -199,7 +202,7 @@ async def test_user_login(e2e_client, e2e_db_session):
 @pytest.mark.e2e
 @pytest.mark.order(4)
 @pytest.mark.asyncio
-async def test_request_password_reset(e2e_client, e2e_db_session, settings):
+async def test_request_password_reset(e2e_client, e2e_db_session, settings) -> None:
     """
     End-to-end test for requesting a password reset (async version).
 
@@ -267,7 +270,7 @@ async def test_request_password_reset(e2e_client, e2e_db_session, settings):
 @pytest.mark.e2e
 @pytest.mark.order(5)
 @pytest.mark.asyncio
-async def test_reset_password(e2e_client, e2e_db_session, settings):
+async def test_reset_password(e2e_client, e2e_db_session, settings) -> None:
     """
     End-to-end test for resetting a user's password (async version).
 
@@ -362,7 +365,7 @@ async def test_reset_password(e2e_client, e2e_db_session, settings):
 @pytest.mark.e2e
 @pytest.mark.order(6)
 @pytest.mark.asyncio
-async def test_user_login_with_new_password(e2e_client, e2e_db_session):
+async def test_user_login_with_new_password(e2e_client, e2e_db_session) -> None:
     """
     End-to-end test for user login after password reset (async version).
 

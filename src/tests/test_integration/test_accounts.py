@@ -1,8 +1,16 @@
-from datetime import datetime, timezone, timedelta
+from datetime import (
+    datetime,
+    timezone,
+    timedelta,
+)
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy import select, delete, func
+from sqlalchemy import (
+    select,
+    delete,
+    func,
+)
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
@@ -17,7 +25,7 @@ from database import (
 
 
 @pytest.mark.asyncio
-async def test_register_user_success(client, db_session, seed_user_groups):
+async def test_register_user_success(client, db_session, seed_user_groups) -> None:
     """
     Test successful user registration.
 
@@ -62,7 +70,7 @@ async def test_register_user_success(client, db_session, seed_user_groups):
     ("NOLOWERCASE1@", "Password must contain at least one lower letter."),
     ("NoSpecial123", "Password must contain at least one special character: @, $, !, %, *, ?, #, &."),
 ])
-async def test_register_user_password_validation(client, seed_user_groups, invalid_password, expected_error):
+async def test_register_user_password_validation(client, seed_user_groups, invalid_password, expected_error) -> None:
     """
     Test password strength validation in the user registration endpoint.
 
@@ -88,7 +96,7 @@ async def test_register_user_password_validation(client, seed_user_groups, inval
 
 
 @pytest.mark.asyncio
-async def test_register_user_conflict(client, db_session, seed_user_groups):
+async def test_register_user_conflict(client, db_session, seed_user_groups) -> None:
     """
     Test user registration conflict.
 
@@ -122,7 +130,7 @@ async def test_register_user_conflict(client, db_session, seed_user_groups):
 
 
 @pytest.mark.asyncio
-async def test_register_user_internal_server_error(client, seed_user_groups):
+async def test_register_user_internal_server_error(client, seed_user_groups) -> None:
     """
     Test server error during user registration.
 
@@ -148,7 +156,7 @@ async def test_register_user_internal_server_error(client, seed_user_groups):
 
 
 @pytest.mark.asyncio
-async def test_activate_account_success(client, db_session, seed_user_groups):
+async def test_activate_account_success(client, db_session, seed_user_groups) -> None:
     """
     Test successful activation of a user account.
 
@@ -205,7 +213,7 @@ async def test_activate_account_success(client, db_session, seed_user_groups):
 
 
 @pytest.mark.asyncio
-async def test_activate_user_with_expired_token(client, db_session, seed_user_groups):
+async def test_activate_user_with_expired_token(client, db_session, seed_user_groups) -> None:
     """
     Test activation with an expired token.
 
@@ -251,7 +259,7 @@ async def test_activate_user_with_expired_token(client, db_session, seed_user_gr
 
 
 @pytest.mark.asyncio
-async def test_activate_user_with_deleted_token(client, db_session, seed_user_groups):
+async def test_activate_user_with_deleted_token(client, db_session, seed_user_groups) -> None:
     """
     Test activation with a deleted token.
 
@@ -301,7 +309,7 @@ async def test_activate_user_with_deleted_token(client, db_session, seed_user_gr
 
 
 @pytest.mark.asyncio
-async def test_activate_already_active_user(client, db_session, seed_user_groups):
+async def test_activate_already_active_user(client, db_session, seed_user_groups) -> None:
     """
     Test activation of an already active user.
 
@@ -345,7 +353,7 @@ async def test_activate_already_active_user(client, db_session, seed_user_groups
 
 
 @pytest.mark.asyncio
-async def test_request_password_reset_token_success(client, db_session, seed_user_groups):
+async def test_request_password_reset_token_success(client, db_session, seed_user_groups) -> None:
     """
     Test successful password reset token request.
 
@@ -393,7 +401,7 @@ async def test_request_password_reset_token_success(client, db_session, seed_use
 
 
 @pytest.mark.asyncio
-async def test_request_password_reset_token_nonexistent_user(client, db_session):
+async def test_request_password_reset_token_nonexistent_user(client, db_session) -> None:
     """
     Test password reset token request for a non-existent user.
 
@@ -415,7 +423,7 @@ async def test_request_password_reset_token_nonexistent_user(client, db_session)
 
 
 @pytest.mark.asyncio
-async def test_request_password_reset_token_for_inactive_user(client, db_session, seed_user_groups):
+async def test_request_password_reset_token_for_inactive_user(client, db_session, seed_user_groups) -> None:
     """
     Test password reset token request for a registered but inactive user.
 
@@ -449,7 +457,7 @@ async def test_request_password_reset_token_for_inactive_user(client, db_session
 
 
 @pytest.mark.asyncio
-async def test_reset_password_success(client, db_session, seed_user_groups):
+async def test_reset_password_success(client, db_session, seed_user_groups) -> None:
     """
     Test the complete password reset flow.
 
@@ -513,7 +521,7 @@ async def test_reset_password_success(client, db_session, seed_user_groups):
 
 
 @pytest.mark.asyncio
-async def test_reset_password_invalid_email(client, db_session):
+async def test_reset_password_invalid_email(client, db_session) -> None:
     """
     Test password reset with an email that does not exist in the database.
 
@@ -532,11 +540,12 @@ async def test_reset_password_invalid_email(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_reset_password_invalid_token(client, db_session, seed_user_groups):
+async def test_reset_password_invalid_token(client, db_session, seed_user_groups) -> None:
     """
     Test password reset with an incorrect token.
 
-    Validates that the endpoint returns a 400 status code and an appropriate error message when an invalid token is provided.
+    Validates that the endpoint returns a 400 status code and
+    an appropriate error message when an invalid token is provided.
     Also ensures that any invalid token is removed from the database.
     """
     registration_payload = {
@@ -574,7 +583,7 @@ async def test_reset_password_invalid_token(client, db_session, seed_user_groups
 
 
 @pytest.mark.asyncio
-async def test_reset_password_expired_token(client, db_session, seed_user_groups):
+async def test_reset_password_expired_token(client, db_session, seed_user_groups) -> None:
     """
     Test password reset with an expired token.
 
@@ -624,7 +633,7 @@ async def test_reset_password_expired_token(client, db_session, seed_user_groups
 
 
 @pytest.mark.asyncio
-async def test_reset_password_sqlalchemy_error(client, db_session, seed_user_groups):
+async def test_reset_password_sqlalchemy_error(client, db_session, seed_user_groups) -> None:
     """
     Test password reset when a database commit raises SQLAlchemyError.
 
@@ -678,7 +687,7 @@ async def test_reset_password_sqlalchemy_error(client, db_session, seed_user_gro
 
 
 @pytest.mark.asyncio
-async def test_login_user_success(client, db_session, jwt_manager, seed_user_groups):
+async def test_login_user_success(client, db_session, jwt_manager, seed_user_groups) -> None:
     """
     Test successful login.
 
@@ -736,7 +745,7 @@ async def test_login_user_success(client, db_session, jwt_manager, seed_user_gro
 
 
 @pytest.mark.asyncio
-async def test_login_user_invalid_cases(client, db_session, seed_user_groups):
+async def test_login_user_invalid_cases(client, db_session, seed_user_groups) -> None:
     """
     Test login with invalid cases:
     1. Non-existent user.
@@ -780,7 +789,7 @@ async def test_login_user_invalid_cases(client, db_session, seed_user_groups):
 
 
 @pytest.mark.asyncio
-async def test_login_user_inactive_account(client, db_session, seed_user_groups):
+async def test_login_user_inactive_account(client, db_session, seed_user_groups) -> None:
     """
     Test login with an inactive user account.
 
@@ -818,7 +827,7 @@ async def test_login_user_inactive_account(client, db_session, seed_user_groups)
 
 
 @pytest.mark.asyncio
-async def test_login_user_commit_error(client, db_session, seed_user_groups):
+async def test_login_user_commit_error(client, db_session, seed_user_groups) -> None:
     """
     Test login when a database commit error occurs.
 
@@ -857,7 +866,7 @@ async def test_login_user_commit_error(client, db_session, seed_user_groups):
 
 
 @pytest.mark.asyncio
-async def test_refresh_access_token_success(client, db_session, jwt_manager, seed_user_groups):
+async def test_refresh_access_token_success(client, db_session, jwt_manager, seed_user_groups) -> None:
     """
     Test successful access token refresh.
 
@@ -907,7 +916,7 @@ async def test_refresh_access_token_success(client, db_session, jwt_manager, see
 
 
 @pytest.mark.asyncio
-async def test_refresh_access_token_expired_token(client, jwt_manager):
+async def test_refresh_access_token_expired_token(client, jwt_manager) -> None:
     """
     Test refresh token with expired token.
 
@@ -927,7 +936,7 @@ async def test_refresh_access_token_expired_token(client, jwt_manager):
 
 
 @pytest.mark.asyncio
-async def test_refresh_access_token_token_not_found(client, jwt_manager):
+async def test_refresh_access_token_token_not_found(client, jwt_manager) -> None:
     """
     Test refresh token when token is not found in the database.
 
@@ -943,7 +952,7 @@ async def test_refresh_access_token_token_not_found(client, jwt_manager):
 
 
 @pytest.mark.asyncio
-async def test_refresh_access_token_user_not_found(client, db_session, jwt_manager, seed_user_groups):
+async def test_refresh_access_token_user_not_found(client, db_session, jwt_manager, seed_user_groups) -> None:
     """
     Test refresh token when user ID inside the token does not exist in the database.
 

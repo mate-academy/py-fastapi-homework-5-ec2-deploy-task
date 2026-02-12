@@ -1,12 +1,21 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 from unittest.mock import patch
 
 import pytest
 from io import BytesIO
 from PIL import Image
-from sqlalchemy import select, func
+from sqlalchemy import (
+    select,
+    func,
+)
 
-from database import UserModel, UserProfileModel
+from database import (
+    UserModel,
+    UserProfileModel,
+)
 from exceptions import S3FileUploadError
 
 
@@ -14,7 +23,7 @@ from exceptions import S3FileUploadError
 @pytest.mark.unit
 async def test_create_user_profile_with_fake_s3(
         db_session, seed_user_groups, reset_db, jwt_manager, s3_storage_fake, client
-):
+) -> None:
     """
     Positive test for creating a user profile.
 
@@ -94,7 +103,7 @@ async def test_create_user_profile_with_fake_s3(
         ),
     ],
 )
-async def test_create_user_profile_invalid_auth(client, headers, expected_status, expected_detail):
+async def test_create_user_profile_invalid_auth(client, headers, expected_status, expected_detail) -> None:
     """
     Test profile creation with missing or incorrectly formatted Authorization header.
 
@@ -114,7 +123,7 @@ async def test_create_user_profile_invalid_auth(client, headers, expected_status
 
 @pytest.mark.asyncio
 @pytest.mark.unit
-async def test_create_user_profile_expired_token(client, jwt_manager):
+async def test_create_user_profile_expired_token(client, jwt_manager) -> None:
     """
     Test profile creation with an expired access token.
 
@@ -155,7 +164,7 @@ async def test_create_user_profile_expired_token(client, jwt_manager):
 @pytest.mark.unit
 async def test_admin_creates_user_profile(
         db_session, seed_user_groups, reset_db, jwt_manager, s3_storage_fake, client
-):
+) -> None:
     """
     Test that an admin can create a profile for another user.
 
@@ -235,7 +244,7 @@ async def test_admin_creates_user_profile(
 @pytest.mark.unit
 async def test_user_cannot_create_another_user_profile(
         db_session, seed_user_groups, reset_db, jwt_manager, s3_storage_fake, client
-):
+) -> None:
     """
     Test that a regular user cannot create a profile for another user.
 
@@ -295,7 +304,7 @@ async def test_user_cannot_create_another_user_profile(
 @pytest.mark.unit
 async def test_inactive_user_cannot_create_profile(
         db_session, seed_user_groups, reset_db, jwt_manager, s3_storage_fake, client
-):
+) -> None:
     """
     Test that an inactive user cannot create a profile.
 
@@ -347,7 +356,7 @@ async def test_inactive_user_cannot_create_profile(
 @pytest.mark.unit
 async def test_cannot_create_profile_twice(
         db_session, seed_user_groups, reset_db, jwt_manager, s3_storage_fake, client
-):
+) -> None:
     """
     Test that a user cannot create a profile twice.
 
@@ -403,7 +412,7 @@ async def test_cannot_create_profile_twice(
 @pytest.mark.unit
 async def test_profile_creation_fails_on_s3_upload_error(
         db_session, seed_user_groups, reset_db, jwt_manager, s3_storage_fake, client
-):
+) -> None:
     """
     Test that profile creation fails if S3 upload fails.
 
@@ -460,7 +469,7 @@ async def test_profile_creation_fails_on_s3_upload_error(
     ("John1", "Doe", "John1 contains non-english letters"),
     ("John", "Doe1", "Doe1 contains non-english letters"),
 ])
-async def test_profile_creation_invalid_name(client, jwt_manager, first_name, last_name, expected_error):
+async def test_profile_creation_invalid_name(client, jwt_manager, first_name, last_name, expected_error) -> None:
     """
     Test that profile creation fails if the first_name or last_name contains non-English letters.
 
@@ -488,7 +497,7 @@ async def test_profile_creation_invalid_name(client, jwt_manager, first_name, la
 
 @pytest.mark.asyncio
 @pytest.mark.unit
-async def test_profile_creation_invalid_avatar_format(client, jwt_manager):
+async def test_profile_creation_invalid_avatar_format(client, jwt_manager) -> None:
     """
     Test that profile creation fails if the avatar has an unsupported format.
 
@@ -517,7 +526,7 @@ async def test_profile_creation_invalid_avatar_format(client, jwt_manager):
 
 @pytest.mark.asyncio
 @pytest.mark.unit
-async def test_profile_creation_avatar_too_large(db_session, client, jwt_manager):
+async def test_profile_creation_avatar_too_large(db_session, client, jwt_manager) -> None:
     """
     Test that profile creation fails if the avatar exceeds 1MB.
 
@@ -550,7 +559,7 @@ async def test_profile_creation_avatar_too_large(db_session, client, jwt_manager
 
 @pytest.mark.asyncio
 @pytest.mark.unit
-async def test_profile_creation_invalid_gender(client, jwt_manager):
+async def test_profile_creation_invalid_gender(client, jwt_manager) -> None:
     """
     Test that profile creation fails if gender is invalid.
 
@@ -583,7 +592,7 @@ async def test_profile_creation_invalid_gender(client, jwt_manager):
     ("1800-01-01", "Invalid birth date - year must be greater than 1900."),
     ("2010-01-01", "You must be at least 18 years old to register."),
 ])
-async def test_profile_creation_invalid_birth_date(client, jwt_manager, birth_date, expected_error):
+async def test_profile_creation_invalid_birth_date(client, jwt_manager, birth_date, expected_error) -> None:
     """
     Test that profile creation fails if birth_date is invalid.
 
@@ -610,7 +619,7 @@ async def test_profile_creation_invalid_birth_date(client, jwt_manager, birth_da
 @pytest.mark.asyncio
 @pytest.mark.unit
 @pytest.mark.parametrize("info_value", ["", "   "])
-async def test_profile_creation_empty_info(client, jwt_manager, info_value):
+async def test_profile_creation_empty_info(client, jwt_manager, info_value) -> None:
     """
     Test that profile creation fails if the info field is empty or contains only spaces.
 

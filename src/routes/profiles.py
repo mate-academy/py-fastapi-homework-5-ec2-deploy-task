@@ -1,15 +1,35 @@
 from typing import cast
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
 from pydantic import HttpUrl
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import get_s3_storage_client, get_jwt_auth_manager
+from config import (
+    get_s3_storage_client,
+    get_jwt_auth_manager,
+)
 from database import get_db
-from database.models.accounts import UserModel, UserProfileModel, GenderEnum, UserGroupModel, UserGroupEnum
-from exceptions import BaseSecurityError, S3FileUploadError
-from schemas.profiles import ProfileCreateSchema, ProfileResponseSchema
+from database.models.accounts import (
+    UserModel,
+    UserProfileModel,
+    GenderEnum,
+    UserGroupModel,
+    UserGroupEnum,
+)
+from exceptions import (
+    BaseSecurityError,
+    S3FileUploadError,
+)
+from schemas.profiles import (
+    ProfileCreateSchema,
+    ProfileResponseSchema,
+)
 from security.interfaces import JWTAuthManagerInterface
 from security.http import get_token
 from storages import S3StorageInterface

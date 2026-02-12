@@ -29,6 +29,7 @@ jobs:
 
       - name: Run accounts tests
         run: |
+          export PYTHONPATH=$(pwd)/src
           poetry run pytest src/tests/test_integration/test_accounts.py
 
   test-movies:
@@ -54,6 +55,7 @@ jobs:
 
       - name: Run movies tests
         run: |
+          export PYTHONPATH=$(pwd)/src
           poetry run pytest src/tests/test_integration/test_movies.py
 
   test-profiles:
@@ -77,21 +79,33 @@ jobs:
         run: |
           poetry run flake8 src
 
-      - name: Run movies tests
+      - name: Run profiles tests
         run: |
+          export PYTHONPATH=$(pwd)/src
           poetry run pytest src/tests/test_integration/test_profiles.py
 
   test-e2e:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Start Docker Compose and wait for completion
-        run: |
-          docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from web
+      - name: Set up Docker Compose
+        run: docker compose version
+
+      - name: List test_e2e folder
+        run: ls -la src/tests/test_e2e
+
+      - name: List all files
+        run: ls -la
+
+      - name: Check Docker Compose config
+        run: docker compose -f docker-compose-tests.yml config
+
+      - name: Build and run E2E tests
+        run: docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from web
 
       - name: Cleanup
         if: always()
-        run: |
-          docker compose -f docker-compose-tests.yml down
+        run: docker compose -f docker-compose-tests.yml down -v

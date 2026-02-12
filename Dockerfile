@@ -1,50 +1,54 @@
-FROM python:3.10
+FROM python:3.10-slim
 
-# Setting environment variables for Python
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=off
-ENV ALEMBIC_CONFIG=/usr/src/alembic/alembic.ini
+# ---------------------------------------------
+#   ENV
+# ---------------------------------------------
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=off \
+    ALEMBIC_CONFIG=/usr/src/alembic/alembic.ini \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_HOME="/opt/poetry"
 
-# Installing dependencies
-RUN apt update && apt install -y \
+# ---------------------------------------------
+#   System dependencies
+# ---------------------------------------------
+RUN apt update && apt install -y --no-install-recommends \
     gcc \
     libpq-dev \
     netcat-openbsd \
     postgresql-client \
     dos2unix \
-    && apt clean
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
-RUN python -m pip install --upgrade pip && \
-    pip install poetry
+# ---------------------------------------------
+#   Install Poetry
+# ---------------------------------------------
+RUN pip install --no-cache-dir poetry
 
-# Copy dependency files
-COPY ./poetry.lock /usr/src/poetry/poetry.lock
-COPY ./pyproject.toml /usr/src/poetry/pyproject.toml
+# ---------------------------------------------
+#   Copy dependencies files
+# ---------------------------------------------
+COPY ./poetry.lock ./pyproject.toml /usr/src/poetry/
 COPY ./alembic.ini /usr/src/alembic/alembic.ini
 
-# Configure Poetry to avoid creating a virtual environment
-RUN poetry config virtualenvs.create false
-
-# Selecting a working directory
 WORKDIR /usr/src/poetry
 
-# Install dependencies with Poetry
-RUN poetry lock
+# ---------------------------------------------
+#   Install python dependencies
+# ---------------------------------------------
 RUN poetry install --no-root --only main
 
-# Selecting a working directory
+# ---------------------------------------------
+#   Copy app source code
+# ---------------------------------------------
 WORKDIR /usr/src/fastapi
-
-# Copy the source code
 COPY ./src .
 
-# Copy commands
+# ---------------------------------------------
+#   Copy shell scripts
+# ---------------------------------------------
 COPY ./commands /commands
+RUN dos2unix /commands/*.sh && chmod +x /commands/*.sh
 
-# Ensure Unix-style line endings for scripts
-RUN dos2unix /commands/*.sh
-
-# Add execute bit to commands files
-RUN chmod +x /commands/*.sh
+EXPOSE 8000

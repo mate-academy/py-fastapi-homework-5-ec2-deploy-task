@@ -1,4 +1,7 @@
-from typing import Dict, Union
+from typing import (
+    Dict,
+    Union,
+)
 
 from storages import S3StorageInterface
 

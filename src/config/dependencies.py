@@ -1,12 +1,27 @@
 import os
-
+from dotenv import load_dotenv
 from fastapi import Depends
 
-from config.settings import TestingSettings, Settings, BaseAppSettings
-from notifications import EmailSenderInterface, EmailSender
+from config.settings import (
+    TestingSettings,
+    Settings,
+    BaseAppSettings,
+)
+from notifications import (
+    EmailSenderInterface,
+    EmailSender,
+)
 from security.interfaces import JWTAuthManagerInterface
 from security.token_manager import JWTAuthManager
-from storages import S3StorageInterface, S3StorageClient
+from storages import (
+    S3StorageInterface,
+    S3StorageClient,
+)
+
+
+load_dotenv()
+
+print(os.getenv("SECRET_KEY_ACCESS"))
 
 
 def get_settings() -> BaseAppSettings:
