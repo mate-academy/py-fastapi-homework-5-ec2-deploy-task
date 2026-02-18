@@ -129,7 +129,7 @@ async def register_user(
             detail="An error occurred during user creation."
         ) from e
     else:
-        activation_link = "http://127.0.0.1/accounts/activate/"
+        activation_link = "http://52.28.246.65/accounts/activate/"
 
         await email_sender.send_activation_email(
             new_user.email,
@@ -229,7 +229,7 @@ async def activate_account(
     await db.delete(token_record)
     await db.commit()
 
-    login_link = "http://127.0.0.1/accounts/login/"
+    login_link = "http://52.28.246.65/accounts/login/"
 
     await email_sender.send_activation_complete_email(
         str(activation_data.email),
@@ -283,7 +283,7 @@ async def request_password_reset_token(
     db.add(reset_token)
     await db.commit()
 
-    password_reset_complete_link = "http://127.0.0.1/accounts/password-reset-complete/"
+    password_reset_complete_link = "http://52.28.246.65/accounts/password-reset-complete/"
 
     await email_sender.send_password_reset_email(
         str(data.email),
@@ -405,7 +405,7 @@ async def reset_password(
             detail="An error occurred while resetting the password."
         )
 
-    login_link = "http://127.0.0.1/accounts/login/"
+    login_link = "http://52.28.246.65/accounts/login/"
 
     await email_sender.send_password_reset_complete_email(
         str(data.email),
