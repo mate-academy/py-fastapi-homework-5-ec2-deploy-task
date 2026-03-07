@@ -8,7 +8,7 @@ services:
       - "5432:5432"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - postgres_theater_data:/var/lib/postgresql/data/
+      - postgres_theater_data:/var/lib/postgresql
     networks:
       - theater_network
     healthcheck:
@@ -17,6 +17,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    restart: unless-stopped
 
   pgadmin:
     image: dpage/pgadmin4
@@ -32,6 +33,7 @@ services:
       - pgadmin_theater_data:/var/lib/pgadmin
     networks:
       - theater_network
+    restart: unless-stopped
 
   web:
     restart: always
@@ -71,6 +73,7 @@ services:
       - PYTHONPATH=/usr/src/fastapi
     networks:
       - theater_network
+    restart: unless-stopped
 
   mailhog:
     restart: always
@@ -107,6 +110,7 @@ services:
       retries: 5
     networks:
       - theater_network
+    restart: unless-stopped
 
   minio_mc:
     build:
@@ -121,6 +125,7 @@ services:
       - .env
     networks:
       - theater_network
+    restart: unless-stopped
 
   nginx:
     build:
