@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Start ssh-agent
+eval "$(ssh-agent -s)"
+
+# Add deploy key
+ssh-add ~/.ssh/id_ed25519_github
+
 # Exit the script immediately if any command exits with a non-zero status
 set -e
 
@@ -10,7 +16,7 @@ handle_error() {
 }
 
 # Navigate to the application directory
-cd /home/ubuntu/src/mate-fastapi-homework-5 || handle_error "Failed to navigate to the application directory."
+cd /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task || handle_error "Failed to navigate to the application directory."
 
 # Fetch the latest changes from the remote repository
 echo "Fetching the latest changes from the remote repository..."
