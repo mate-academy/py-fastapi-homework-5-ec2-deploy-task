@@ -10,7 +10,9 @@ handle_error() {
 }
 
 # Navigate to the application directory
-cd /home/ubuntu/src/mate-fastapi-homework-5 || handle_error "Failed to navigate to the application directory."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_DIR}" || handle_error "Failed to navigate to the application directory."
 
 # Fetch the latest changes from the remote repository
 echo "Fetching the latest changes from the remote repository..."
