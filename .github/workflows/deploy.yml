@@ -1,0 +1,35 @@
+name: Deploy to AWS EC2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 host to known hosts
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          : "${EC2_HOST:?EC2_HOST secret is required}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Run deployment script
+        env:
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_PROJECT_PATH: ${{ vars.EC2_PROJECT_PATH }}
+        run: |
+          : "${EC2_USER:?EC2_USER secret is required}"
+          : "${EC2_HOST:?EC2_HOST secret is required}"
+
+          PROJECT_PATH="${EC2_PROJECT_PATH:-/home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task}"
+          ssh "$EC2_USER@$EC2_HOST" \
+            "APP_DIR='$PROJECT_PATH' DEPLOY_BRANCH='main' bash '$PROJECT_PATH/commands/deploy.sh'"

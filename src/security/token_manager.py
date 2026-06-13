@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import uuid4
 
 from jose import jwt, JWTError, ExpiredSignatureError
 
@@ -29,7 +30,7 @@ class JWTAuthManager(JWTAuthManagerInterface):
         """
         to_encode = data.copy()
         expire = datetime.now(timezone.utc) + expires_delta
-        to_encode.update({"exp": expire})
+        to_encode.update({"exp": expire, "jti": uuid4().hex})
         return jwt.encode(to_encode, secret_key, algorithm=self._algorithm)
 
     def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
