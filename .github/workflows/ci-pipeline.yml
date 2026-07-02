@@ -1,18 +1,17 @@
-name: CI Pipeline
-
+name: ci-pipeline.yml
 on:
   pull_request:
     branches:
       - "main"
 
 jobs:
-  test-accounts:
+  test_accounts:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Download Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -31,13 +30,13 @@ jobs:
         run: |
           poetry run pytest src/tests/test_integration/test_accounts.py
 
-  test-movies:
+  test_movies:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Download Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -52,17 +51,17 @@ jobs:
         run: |
           poetry run flake8 src
 
-      - name: Run movies tests
+      - name: Run accounts tests
         run: |
           poetry run pytest src/tests/test_integration/test_movies.py
 
-  test-profiles:
+  test_profiles:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Download Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -77,21 +76,21 @@ jobs:
         run: |
           poetry run flake8 src
 
-      - name: Run movies tests
+      - name: Run accounts tests
         run: |
           poetry run pytest src/tests/test_integration/test_profiles.py
 
-  test-e2e:
+  test_e2e:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Start Docker Compose and wait for completion
+      - name: Setup Docker
         run: |
           docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from web
 
-      - name: Cleanup
+      - name: Cleanup Docker
         if: always()
         run: |
           docker compose -f docker-compose-tests.yml down
