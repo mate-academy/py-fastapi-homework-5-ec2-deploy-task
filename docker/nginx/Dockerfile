@@ -1,7 +1,7 @@
 # Use the official Nginx image as a base
 FROM nginx:latest
 
-# Install the necessary packages
+# Install the necessary package
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         apache2-utils \
