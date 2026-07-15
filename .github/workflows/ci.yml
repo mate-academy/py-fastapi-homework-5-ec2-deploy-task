@@ -1,13 +1,19 @@
 name: CI Pipeline
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
-      - "main"
+      - main
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
   test-accounts:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -32,7 +38,9 @@ jobs:
           poetry run pytest src/tests/test_integration/test_accounts.py
 
   test-movies:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -57,7 +65,9 @@ jobs:
           poetry run pytest src/tests/test_integration/test_movies.py
 
   test-profiles:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -77,19 +87,24 @@ jobs:
         run: |
           poetry run flake8 src
 
-      - name: Run movies tests
+      - name: Run profiles tests
         run: |
           poetry run pytest src/tests/test_integration/test_profiles.py
 
   test-e2e:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Start Docker Compose and wait for completion
         run: |
-          docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from web
+          docker compose -f docker-compose-tests.yml up \
+            --build \
+            --abort-on-container-exit \
+            --exit-code-from web
 
       - name: Cleanup
         if: always()
