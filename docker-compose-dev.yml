@@ -51,6 +51,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
     volumes:
       - ./src:/usr/src/fastapi
     networks:

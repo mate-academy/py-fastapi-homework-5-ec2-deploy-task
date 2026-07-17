@@ -90,8 +90,6 @@ services:
       - .env
     ports:
       - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
     healthcheck:
       test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
@@ -103,8 +101,6 @@ services:
 
 volumes:
   minio_data_test:
-    driver: local
-  mongo_data:
     driver: local
 
 networks:
