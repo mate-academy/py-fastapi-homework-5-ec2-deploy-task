@@ -35,7 +35,10 @@ aiosqlite = "^0.21.0"
 aioboto3 = "^13.4.0"
 pytest-asyncio = "^0.25.3"
 gunicorn = "^23.0.0"
-
+motor = "^3.7.1"
+websockets = "^16.0"
+httpx-ws = "^0.9.0"
+anyio = "^4.10"
 
 [build-system]
 requires = ["poetry-core"]

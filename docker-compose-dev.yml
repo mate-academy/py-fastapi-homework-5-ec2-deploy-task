@@ -1,6 +1,6 @@
 services:
   db:
-    image: 'postgres:latest'
+    image: 'postgres:17'
     container_name: postgres_theater
     env_file:
       - .env
@@ -122,12 +122,47 @@ services:
     networks:
       - theater_network
 
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - theater_network
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    restart: always
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "8081:8081"
+    networks:
+      - theater_network
+
 volumes:
   postgres_theater_data:
     driver: local
   pgadmin_theater_data:
     driver: local
   minio_data:
+    driver: local
+  mongo_data:
     driver: local
 
 networks:

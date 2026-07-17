@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: ./docker/tests/Dockerfile
     container_name: backend_theater_test
-    command: [ "pytest", "-c", "/usr/src/config/pytest.ini",
+    command: [ "pytest", "-s", "-c", "/usr/src/config/pytest.ini",
                "-m", "e2e", "--maxfail=5", "--disable-warnings", "-v", "--tb=short"]
     environment:
       - PYTHONPATH=/usr/src/fastapi
@@ -20,6 +20,8 @@ services:
       - MINIO_HOST=minio-theater-test
       - MINIO_PORT=9000
       - MINIO_STORAGE=theater-storage
+    env_file:
+      - .env
     depends_on:
       mailhog:
         condition: service_started
@@ -80,8 +82,29 @@ services:
     networks:
       - theater_network_test
 
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - theater_network_test
+
 volumes:
   minio_data_test:
+    driver: local
+  mongo_data:
     driver: local
 
 networks:
