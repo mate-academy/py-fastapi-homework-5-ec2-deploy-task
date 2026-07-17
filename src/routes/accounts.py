@@ -89,7 +89,6 @@ async def register_user(
         user_data (UserRegistrationRequestSchema): The registration details including email and password.
         db (AsyncSession): The asynchronous database session.
         email_sender (EmailSenderInterface): The asynchronous email sender.
-        activity_repo (UserActivityRepoInterface): Managing the user activity collection.
 
     Returns:
         UserRegistrationResponseSchema: The newly created user's details.

@@ -87,6 +87,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Create env file
+        run: |
+          cp .env.sample .env
+
       - name: Start Docker Compose and wait for completion
         run: |
           docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from web
