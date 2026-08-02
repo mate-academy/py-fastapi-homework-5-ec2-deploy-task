@@ -7,7 +7,7 @@ from user_activity.interfaces import UserActivityRepoInterface
 
 
 class UserActivityRepository(UserActivityRepoInterface):
-    """MongoDB-backed implementation of the user activity repository."""
+    """MongoDB-backend implementation of the user activity repository."""
 
     def __init__(self, db: AsyncIOMotorDatabase) -> None:
         """
