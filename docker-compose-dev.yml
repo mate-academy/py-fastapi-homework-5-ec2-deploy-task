@@ -78,7 +78,7 @@ services:
       context: .
       dockerfile: ./docker/mailhog/Dockerfile
     container_name: mailhog_theater
-    command: ["/bin/bash", "-c", "/commands/setup_mailhog_auth.sh && ~/go/bin/MailHog"]
+    command: ["/bin/bash", "-c", "/commands/setup_mailhog_auth.sh && /go/bin/MailHog"]
     ports:
       - "8025:8025"
       - "1025:1025"
