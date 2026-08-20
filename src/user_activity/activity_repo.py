@@ -1,6 +1,6 @@
 from typing import List
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.asynchronous.database import AsyncDatabase
 
 from schemas.user_activity import UserBaseDTO, UpdateUserActivitySchema, UserActivitySchema
 from user_activity.interfaces import UserActivityRepoInterface
@@ -9,12 +9,12 @@ from user_activity.interfaces import UserActivityRepoInterface
 class UserActivityRepository(UserActivityRepoInterface):
     """MongoDB-backend implementation of the user activity repository."""
 
-    def __init__(self, db: AsyncIOMotorDatabase) -> None:
+    def __init__(self, db: AsyncDatabase) -> None:
         """
         Initialize the repository with a MongoDB database instance.
 
         Args:
-            db (AsyncIOMotorDatabase): The Motor async MongoDB database instance.
+            db (AsyncDatabase): The async MongoDB database instance.
         """
         self.db = db
 

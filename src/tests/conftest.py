@@ -244,11 +244,46 @@ async def seed_database(db_session):
     yield db_session
 
 
-@pytest_asyncio.fixture
-async def cleanup_mongo_user_activity():
+@pytest_asyncio.fixture(scope="session")
+async def mongo_db(_app_lifespan):
     """
-    Pytest fixture that clears the 'user_activity' MongoDB collection after each test.
+    Provide the MongoDB database created by the application lifespan.
+
+    The database is resolved from the very same ``AsyncMongoClient`` that the
+    app stored on ``app.state`` during startup, rather than from a freshly
+    built client. This matters because ``AsyncMongoClient`` binds itself to the
+    event loop it was first used on: a separate client created inside a test
+    would end up on a different loop and raise
+    ``RuntimeError: Cannot use AsyncMongoClient in different event loop``.
+
+    Depends on ``_app_lifespan`` to guarantee that startup has already run and
+    ``app.state.mongo_client`` exists by the time this fixture is resolved.
+
+    Args:
+        _app_lifespan (Any): Session-scoped fixture that runs the application
+            lifespan; required for ordering only, its value is unused.
+
+    Returns:
+        AsyncDatabase: The MongoDB database instance used by the application.
+    """
+    return app.state.mongo_client[get_settings().MONGO_DB]
+
+
+@pytest_asyncio.fixture
+async def cleanup_mongo_user_activity(mongo_db):
+    """
+    Clear the 'user_activity' collection after each test that uses it.
+
+    Yields control to the test first and performs the cleanup afterwards, so
+    that activity documents written by one test never leak into the next one.
+    Only the collection contents are removed; the collection itself and any
+    indexes are left intact.
+
+    Args:
+        mongo_db (AsyncDatabase): The application's MongoDB database instance.
+
+    Yields:
+        None: Control is handed back to the test before cleanup runs.
     """
     yield
-    db = get_mongo_db()
-    await db["user_activity"].delete_many({})
+    await mongo_db["user_activity"].delete_many({})

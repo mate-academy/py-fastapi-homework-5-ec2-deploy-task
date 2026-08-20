@@ -1,8 +1,7 @@
-import asyncio
 from typing import Annotated
 
-from fastapi import Depends, WebSocket
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from fastapi import Depends, WebSocket, Request
+from pymongo.asynchronous.database import AsyncDatabase
 
 from config import get_settings, get_jwt_auth_manager
 from security.interfaces import JWTAuthManagerInterface
@@ -14,31 +13,80 @@ from user_activity.ws_activity_manager import UserActivityWebSocketManager
 
 settings = get_settings()
 
-client = AsyncIOMotorClient(settings.ME_CONFIG_MONGODB_URL)
-client.get_io_loop = asyncio.get_running_loop
 
-
-def get_mongo_db() -> AsyncIOMotorDatabase:
+def get_mongo_db(request: Request) -> AsyncDatabase:
     """
-    Provide the configured MongoDB database instance for dependency injection.
+    Resolve the MongoDB database for HTTP request handlers.
+
+    Reads the shared ``AsyncMongoClient`` from the application state, where it
+    was placed during startup, so that every request reuses a single client and
+    its connection pool instead of opening a new one.
+
+    Args:
+        request (Request): The incoming HTTP request, used to reach the
+            application instance and its state.
 
     Returns:
-        AsyncIOMotorDatabase: The Motor database instance used for activity storage.
+        AsyncDatabase: The MongoDB database instance for activity storage.
     """
-    return client[settings.MONGO_DB]
+    return request.app.state.mongo_client[settings.MONGO_DB]
+
+
+def get_mongo_db_ws(websocket: WebSocket) -> AsyncDatabase:
+    """
+    Resolve the MongoDB database for WebSocket handlers.
+
+    Mirrors :func:`get_mongo_db`, but takes a ``WebSocket`` instead of a
+    ``Request``: WebSocket routes never receive a ``Request`` object, so the
+    application instance has to be reached through the socket itself. Both
+    functions return a database backed by the same shared client.
+
+    Args:
+        websocket (WebSocket): The current WebSocket connection, used to reach
+            the application instance and its state.
+
+    Returns:
+        AsyncDatabase: The MongoDB database instance for activity storage.
+    """
+    return websocket.app.state.mongo_client[settings.MONGO_DB]
 
 
 def get_user_activity_repository(
-    db: Annotated[AsyncIOMotorDatabase, Depends(get_mongo_db)]
+    db: Annotated[AsyncDatabase, Depends(get_mongo_db)]
 ) -> UserActivityRepository:
     """
-    Build a UserActivityRepository bound to the injected MongoDB database.
+    Build a user activity repository for HTTP routes.
+
+    Used by regular HTTP endpoints such as ``/accounts/login/``, where the
+    database is resolved from the incoming request.
 
     Args:
-        db (AsyncIOMotorDatabase): The MongoDB database instance.
+        db (AsyncDatabase): The MongoDB database instance injected via
+            :func:`get_mongo_db`.
 
     Returns:
-        UserActivityRepository: A repository instance for user activity persistence.
+        UserActivityRepository: A repository bound to the given database.
+    """
+    return UserActivityRepository(db)
+
+
+def get_user_activity_repository_ws(
+    db: Annotated[AsyncDatabase, Depends(get_mongo_db_ws)]
+) -> UserActivityRepository:
+    """
+    Build a user activity repository for the WebSocket route.
+
+    Consumed indirectly through :func:`get_user_activity_service`. It exists as
+    a separate provider only because the database has to be resolved from a
+    ``WebSocket`` rather than a ``Request``; the resulting repository is
+    identical to the one returned by :func:`get_user_activity_repository`.
+
+    Args:
+        db (AsyncDatabase): The MongoDB database instance injected via
+            :func:`get_mongo_db_ws`.
+
+    Returns:
+        UserActivityRepository: A repository bound to the given database.
     """
     return UserActivityRepository(db)
 
@@ -67,7 +115,7 @@ def get_user_activity_service(
         ],
         activity_repo: Annotated[
             UserActivityRepoInterface,
-            Depends(get_user_activity_repository)
+            Depends(get_user_activity_repository_ws)
         ]
 ) -> UserActivityService:
     """
