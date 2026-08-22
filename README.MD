@@ -29,8 +29,6 @@ Before you begin, ensure you have the following:
 - **Security Best Practices:** Always follow security best practices, such as restricting SSH access to trusted IP addresses and regularly updating your instance.
 - **Resource Management:** Monitor your instance's performance and resource usage to ensure optimal operation.
 
-Absolutely! Below is the translated and enhanced section for your README that outlines the project's directory structure. This section includes a visual tree diagram and detailed descriptions of each file and directory to help users understand the project's organization and components.
-
 ---
 
 ## Project Directory Structure
@@ -1098,7 +1096,7 @@ After creating the EC2 instance, the following ports are open by default: **22 (
    - Go back to the `Instances` list.
    - Ensure that the public IP of your EC2 instance matches the Elastic IP you just created.
 
-   ![Elastic IPs](./images_aws/25_elastic_ips_7.png)
+   ![Elastic IPs](./assets/images_aws/25_elastic_ips_7.png)
 
    **Benefit:** Your EC2 instance will retain this public IP address even after reboots.
 
