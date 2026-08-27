@@ -31,6 +31,15 @@ class BaseAppSettings(BaseSettings):
     S3_STORAGE_SECRET_KEY: str = os.getenv("MINIO_ROOT_PASSWORD", "some_password")
     S3_BUCKET_NAME: str = os.getenv("MINIO_STORAGE", "theater-storage")
 
+    MONGO_DB: str = os.getenv("MONGO_DB", "movies")
+    MONGO_INITDB_ROOT_USERNAME: str = os.getenv("MONGO_INITDB_ROOT_USERNAME", "admin")
+    MONGO_INITDB_ROOT_PASSWORD: str = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "some_password")
+    ME_CONFIG_MONGODB_ADMINUSERNAME: str = os.getenv("ME_CONFIG_MONGODB_ADMINUSERNAME", "admin")
+    ME_CONFIG_MONGODB_ADMINPASSWORD: str = os.getenv("ME_CONFIG_MONGODB_ADMINPASSWORD", "some_password")
+    ME_CONFIG_MONGODB_URL: str = os.getenv("ME_CONFIG_MONGODB_URL", "mongodb://admin:some_password@mongodb:27017/")
+    ME_CONFIG_BASICAUTH_USERNAME: str = os.getenv("ME_CONFIG_BASICAUTH_USERNAME", "admin")
+    ME_CONFIG_BASICAUTH_PASSWORD: str = os.getenv("ME_CONFIG_BASICAUTH_PASSWORD", "some_password")
+
     @property
     def S3_STORAGE_ENDPOINT(self) -> str:
         return f"http://{self.S3_STORAGE_HOST}:{self.S3_STORAGE_PORT}"
@@ -52,6 +61,7 @@ class TestingSettings(BaseAppSettings):
     SECRET_KEY_ACCESS: str = "SECRET_KEY_ACCESS"
     SECRET_KEY_REFRESH: str = "SECRET_KEY_REFRESH"
     JWT_SIGNING_ALGORITHM: str = "HS256"
+    MONGO_DB: str = "test_movies"
 
     def model_post_init(self, __context: dict[str, Any] | None = None) -> None:
         object.__setattr__(self, 'PATH_TO_DB', ":memory:")

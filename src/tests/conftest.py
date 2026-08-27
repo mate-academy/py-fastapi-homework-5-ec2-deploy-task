@@ -1,6 +1,6 @@
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy import insert
+from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import get_settings, get_accounts_email_notificator, get_s3_storage_client
@@ -16,7 +16,9 @@ from security.interfaces import JWTAuthManagerInterface
 from security.token_manager import JWTAuthManager
 from storages import S3StorageClient
 from tests.doubles.fakes.storage import FakeS3Storage
+from tests.doubles.fakes.activity import FakeUserActivityRepo
 from tests.doubles.stubs.emails import StubEmailSender
+from user_activity.dependencies import get_mongo_db, get_user_activity_repository
 
 
 def pytest_configure(config):
@@ -29,6 +31,17 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "unit: Unit tests"
     )
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def _app_lifespan():
+    """
+    Run the app's lifespan (startup/shutdown) exactly once for the whole
+    test session, so app.state.mongo_client stays alive and shared between
+    the `client` and `e2e_client` fixtures.
+    """
+    async with app.router.lifespan_context(app):
+        yield
 
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
@@ -88,6 +101,14 @@ async def s3_storage_fake():
     return FakeS3Storage()
 
 
+@pytest_asyncio.fixture(scope="function")
+async def user_activity_repo_fake():
+    """
+    This fixture returns an instance of FakeUserActivityRepo for testing purposes.
+    """
+    return FakeUserActivityRepo()
+
+
 @pytest_asyncio.fixture(scope="session")
 async def s3_client(settings):
     """
@@ -104,7 +125,7 @@ async def s3_client(settings):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def client(email_sender_stub, s3_storage_fake):
+async def client(email_sender_stub, s3_storage_fake, user_activity_repo_fake):
     """
     Provide an asynchronous HTTP client for testing.
 
@@ -112,6 +133,7 @@ async def client(email_sender_stub, s3_storage_fake):
     """
     app.dependency_overrides[get_accounts_email_notificator] = lambda: email_sender_stub
     app.dependency_overrides[get_s3_storage_client] = lambda: s3_storage_fake
+    app.dependency_overrides[get_user_activity_repository] = lambda: user_activity_repo_fake
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as async_client:
         yield async_client
@@ -126,6 +148,7 @@ async def e2e_client():
 
     This client is available at the session scope.
     """
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as async_client:
         yield async_client
 
@@ -185,8 +208,18 @@ async def seed_user_groups(db_session: AsyncSession):
     This fixture inserts all user groups defined in UserGroupEnum into the database and commits the transaction.
     It then yields the asynchronous database session for further testing.
     """
-    groups = [{"name": group.value} for group in UserGroupEnum]
-    await db_session.execute(insert(UserGroupModel).values(groups))
+    result = await db_session.execute(select(UserGroupModel.name))
+    existing_names = list(result.scalars().all())
+
+    missing_groups = [
+        {"name": group.value}
+        for group in UserGroupEnum
+        if group.value not in existing_names
+    ]
+
+    if missing_groups:
+        await db_session.execute(insert(UserGroupModel).values(missing_groups))
+
     await db_session.commit()
     yield db_session
 
@@ -209,3 +242,48 @@ async def seed_database(db_session):
         await seeder.seed()
 
     yield db_session
+
+
+@pytest_asyncio.fixture(scope="session")
+async def mongo_db(_app_lifespan):
+    """
+    Provide the MongoDB database created by the application lifespan.
+
+    The database is resolved from the very same ``AsyncMongoClient`` that the
+    app stored on ``app.state`` during startup, rather than from a freshly
+    built client. This matters because ``AsyncMongoClient`` binds itself to the
+    event loop it was first used on: a separate client created inside a test
+    would end up on a different loop and raise
+    ``RuntimeError: Cannot use AsyncMongoClient in different event loop``.
+
+    Depends on ``_app_lifespan`` to guarantee that startup has already run and
+    ``app.state.mongo_client`` exists by the time this fixture is resolved.
+
+    Args:
+        _app_lifespan (Any): Session-scoped fixture that runs the application
+            lifespan; required for ordering only, its value is unused.
+
+    Returns:
+        AsyncDatabase: The MongoDB database instance used by the application.
+    """
+    return app.state.mongo_client[get_settings().MONGO_DB]
+
+
+@pytest_asyncio.fixture
+async def cleanup_mongo_user_activity(mongo_db):
+    """
+    Clear the 'user_activity' collection after each test that uses it.
+
+    Yields control to the test first and performs the cleanup afterwards, so
+    that activity documents written by one test never leak into the next one.
+    Only the collection contents are removed; the collection itself and any
+    indexes are left intact.
+
+    Args:
+        mongo_db (AsyncDatabase): The application's MongoDB database instance.
+
+    Yields:
+        None: Control is handed back to the test before cleanup runs.
+    """
+    yield
+    await mongo_db["user_activity"].delete_many({})

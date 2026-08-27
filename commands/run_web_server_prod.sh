@@ -1,8 +1,8 @@
 #!/bin/sh
 
-# Running Gunicorn with Uvicorn workers
+# Running Gunicorn with Uvicorn worker
 gunicorn main:app \
-    --workers 10 \
+    --workers 1 \
     --worker-class uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:8000 \
     --log-level info \

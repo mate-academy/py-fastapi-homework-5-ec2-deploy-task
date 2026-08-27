@@ -105,6 +105,7 @@ Understanding the project's directory structure is crucial for navigating and ma
     │   ├── security.py
     │   └── storage.py
     ├── main.py
+    ├── lifespan.py
     ├── notifications
     │   ├── __init__.py
     │   ├── emails.py
@@ -119,6 +120,7 @@ Understanding the project's directory structure is crucial for navigating and ma
     │   ├── accounts.py
     │   ├── movies.py
     │   └── profiles.py
+    │   └── activities.py
     ├── schemas
     │   ├── __init__.py
     │   ├── accounts.py
@@ -127,6 +129,7 @@ Understanding the project's directory structure is crucial for navigating and ma
     │   │   └── movies.py
     │   ├── movies.py
     │   └── profiles.py
+    │   └── user_activity.py
     ├── security
     │   ├── __init__.py
     │   ├── http.py
@@ -146,6 +149,7 @@ Understanding the project's directory structure is crucial for navigating and ma
     │   │   ├── fakes
     │   │   │   ├── __init__.py
     │   │   │   └── storage.py
+    │   │   │   └── activity.py
     │   │   └── stubs
     │   │       ├── __init__.py
     │   │       └── emails.py
@@ -153,11 +157,19 @@ Understanding the project's directory structure is crucial for navigating and ma
     │   │   ├── __init__.py
     │   │   ├── test_email_notification.py
     │   │   └── test_storage.py
+    │   │   └── test_user_activity.py
     │   └── test_integration
     │       ├── __init__.py
     │       ├── test_accounts.py
     │       ├── test_movies.py
     │       └── test_profiles.py
+    ├── user_activity
+    │   ├── __init__.py
+    │   ├── activity_repo.py
+    │   ├── activity_service.py
+    │   ├── dependencies.py
+    │   ├── interfaces.py
+    │   ├── ws_activity_manager.py
     └── validation
         ├── __init__.py
         └── profile.py
@@ -263,6 +275,10 @@ Defines custom exception classes to handle various error scenarios within the ap
 
 The main entry point of the application, typically initializing the FastAPI app, including middleware, routers, and other configurations.
 
+##### `src/lifespan.py`
+
+A modern feature used to run startup and shutdown code in a single, unified function using Python's context manager.
+
 ##### `src/notifications/`
 
 Handles email notifications and related functionalities.
@@ -284,6 +300,7 @@ Defines the API endpoints and their respective handlers.
 - **`accounts.py`**: Routes related to user accounts (e.g., registration, login).
 - **`movies.py`**: Routes related to movie data (e.g., listing, details).
 - **`profiles.py`**: Routes related to user profiles.
+- **`activitites.py`**: WebSocket for processing user activity.
 
 ##### `src/schemas/`
 
@@ -296,6 +313,7 @@ Defines the data schemas using Pydantic for request validation and response mode
   - **`movies.py`**: Example schemas for movie data.
 - **`movies.py`**: Schemas for movie-related operations.
 - **`profiles.py`**: Schemas for profile-related operations.
+- **`user_activity.py`**: Schemas for user activity-related operations.
 
 ##### `src/security/`
 
@@ -327,6 +345,7 @@ Contains all test cases to ensure the application's reliability and correctness.
   - **`fakes/`**: Implements fake objects for testing.
     - **`__init__.py`**: Initializes the `fakes` module.
     - **`storage.py`**: Fake storage implementations for tests.
+    - **`activity.py`**: Fake UserActivityRepository class for unit testing.
   - **`stubs/`**: Implements stubs for testing.
     - **`__init__.py`**: Initializes the `stubs` module.
     - **`emails.py`**: Stub implementations for email functionalities.
@@ -334,11 +353,20 @@ Contains all test cases to ensure the application's reliability and correctness.
   - **`__init__.py`**: Initializes the `test_e2e` module.
   - **`test_email_notification.py`**: Tests for email notification flows.
   - **`test_storage.py`**: Tests for storage functionalities.
+  - **`test_user_activity.py`**: Tests for user activity functionalities.
 - **`test_integration/`**: Integration test cases.
   - **`__init__.py`**: Initializes the `test_integration` module.
   - **`test_accounts.py`**: Integration tests for account-related operations.
   - **`test_movies.py`**: Integration tests for movie-related operations.
   - **`test_profiles.py`**: Integration tests for profile-related operations.
+
+##### `src/user_activity/`
+- **`__init__.py`**: Initializes the `user_activity` module.
+- **`activity_repo.py`**: Implementation user activity repository for working with mongo db.
+- **`activity_service.py`**: Implementation of a user activity tracking service for processing WebSocket logic.
+- **`dependencies.py`**: Defines dependencies for user activity, often used with FastAPI for dependency injection.
+- **`interfaces.py`**: Defines dependencies for user activity, often used with FastAPI for dependency injection.
+- **`ws_activity_manager.py`**: A manager for handling user activity WebSocket connections.
 
 ##### `src/validation/`
 
@@ -392,8 +420,10 @@ Here's a breakdown of each service defined in the `docker-compose-prod.yml` file
 6. [**minio**](#minio-service)
 7. [**minio_mc**](#minio_mc-service)
 8. [**nginx**](#nginx-service)
-9. [**Volumes**](#volumes)
-10. [**Networks**](#networks)
+9. [**mongodb**](#mongodb-service)
+10. [**mongo-express**](#mongo-express-service)
+11. [**Volumes**](#volumes)
+12. [**Networks**](#networks)
 
 ---
 
@@ -508,7 +538,7 @@ web:
     - Loaded from the `.env` file for configuration.
     - Additional variables like `LOG_LEVEL`, `PYTHONPATH`, and `WATCHFILES_FORCE_POLLING` fine-tune application behavior.
   - **Ports:** Maps container port `8000` to host port `8000`, making the application accessible via `http://<EC2-Public-IP>:8000`.
-  - **Depends On:** Ensures both `db` and `minio` services are healthy before starting, maintaining service dependencies.
+  - **Depends On:** Ensures the `db`, `minio`, and `mongodb` services are healthy before starting, guaranteeing that all required infrastructure components are available.
   - **Volumes:** Mounts the `./src` directory to `/usr/src/fastapi` inside the container, facilitating code changes without rebuilding the image.
   - **Networks:** Connected to the `theater_network` for communication with other services like `db` and `minio`.
 
@@ -697,6 +727,74 @@ nginx:
 
 ---
 
+### mongodb Service
+
+```yaml
+mongodb:
+  image: mongo:7
+  container_name: mongodb
+  restart: always
+  env_file:
+    - .env
+  ports:
+    - "27017:27017"
+  volumes:
+    - mongo_data:/data/db
+  healthcheck:
+    test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 10s
+  networks:
+    - theater_network
+```
+
+- **Purpose:**  
+  Hosts the MongoDB database used by the application for storing document-oriented data.
+
+- **Key Configurations:**
+  - **Image:** Uses the official `mongo:7` Docker image.
+  - **Container Name:** Named `mongodb`.
+  - **Restart Policy:** Always restarts if the container stops unexpectedly.
+  - **Environment Variables:** Loaded from the `.env` file to configure MongoDB credentials and settings.
+  - **Ports:** Maps container port `27017` to the host's `27017`, allowing external connections when required.
+  - **Volumes:** Persists MongoDB data in the `mongo_data` Docker volume.
+  - **Healthcheck:** Executes `db.adminCommand('ping')` using `mongosh` to verify that MongoDB is ready before dependent services start.
+  - **Networks:** Connected to the `theater_network` for communication with the backend and Mongo Express.
+
+---
+
+### mongo-express Service
+
+```yaml
+mongo-express:
+  image: mongo-express:latest
+  container_name: mongo-express
+  restart: always
+  depends_on:
+    mongodb:
+      condition: service_healthy
+  env_file:
+    - .env
+  ports:
+    - "8081:8081"
+  networks:
+    - theater_network
+```
+
+- **Purpose:**  
+  Provides a web-based interface for browsing and managing MongoDB databases.
+
+- **Key Configurations:**
+  - **Image:** Uses the official `mongo-express` Docker image.
+  - **Container Name:** Named `mongo-express`.
+  - **Restart Policy:** Automatically restarts if the container stops.
+  - **Depends On:** Waits until the `mongodb` service passes its health check before starting.
+  - **Environment Variables:** Loaded from the `.env` file to configure the connection to MongoDB.
+  - **Ports:** Maps container port `8081` to the host, allowing access to the Mongo Express UI via `http://<HOST>:8081`.
+  - **Networks:** Connected to the `theater_network` for communication with MongoDB.
+
 ### Volumes
 
 ```yaml
@@ -706,6 +804,8 @@ volumes:
   pgadmin_theater_data:
     driver: local
   minio_data:
+    driver: local
+  mongo_data:
     driver: local
 ```
 
@@ -724,6 +824,10 @@ volumes:
   - **minio_data:**  
     - **Used By:** `minio` service.
     - **Purpose:** Persists MinIO object storage data, ensuring that stored files remain intact despite container lifecycle events.
+  
+  - **mongo_data:**
+    - **Used By:** `mongodb` service.
+    - **Purpose:** Persists MongoDB data, ensuring documents remain available across container restarts and updates.
 
 ---
 
@@ -826,6 +930,11 @@ http {
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # WebSocket support
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
         }
 
         location /docs {
@@ -873,21 +982,24 @@ http {
        - **`server_name _;`**: Catches all server names not explicitly defined elsewhere.
   
   3. **Location Blocks:**
-     - **Root Location (`/`):**
-       - **Purpose:**  
-         Proxies all incoming traffic to the `web` service.
-       - **Configurations:**
-         - **`proxy_pass http://web:8000;`**: Forwards requests to the backend.
-         - **Header Settings:**  
-           Ensures that the original request headers are preserved and forwarded to the backend.
+    - **Root Location (`/`):**
+      - **Purpose:**  
+        Proxies all incoming HTTP and WebSocket traffic to the backend application.
+      - **Configurations:**
+        - **`proxy_pass http://web:8000;`**: Forwards all requests to the backend service.
+        - **Forwarded Headers:** Preserves the original request information (`Host`, client IP, forwarded IP chain, and protocol).
+        - **WebSocket Support:**
+          - **`proxy_http_version 1.1`** enables persistent HTTP/1.1 connections required by WebSockets.
+          - **`proxy_set_header Upgrade $http_upgrade`** forwards the client's upgrade request.
+          - **`proxy_set_header Connection "upgrade"`** upgrades the HTTP connection to a WebSocket connection when requested.
      
-     - **Secure Locations (`/docs`, `/redoc`, `/openapi.json`):**
-       - **Purpose:**  
-         Protects API documentation and specification endpoints with Basic Authentication.
-       - **Configurations:**
-         - **`include /etc/nginx/conf.d/auth.conf;`**: Includes authentication configurations.
-         - **`proxy_pass` and Header Settings:**  
-           Similar to the root location, proxies requests to the respective backend endpoints while preserving headers.
+    - **Secure Locations (`/docs`, `/redoc`, `/openapi.json`):**
+      - **Purpose:**  
+        Protects API documentation and specification endpoints with Basic Authentication.
+      - **Configurations:**
+        - **`include /etc/nginx/conf.d/auth.conf;`**: Includes authentication configurations.
+        - **`proxy_pass` and Header Settings:**  
+          Similar to the root location, proxies requests to the respective backend endpoints while preserving headers.
   
 ---
 
@@ -896,8 +1008,10 @@ http {
 The `docker-compose-prod.yml` orchestrates a multi-container Docker application with the following key components:
 
 - **Database Layer:**
-  - **PostgreSQL (`db`):** Stores application data.
-  - **PgAdmin (`pgadmin`):** Provides a GUI for managing the PostgreSQL database.
+  - **PostgreSQL (`db`):** Primary relational database for application data.
+  - **PgAdmin (`pgadmin`):** Web interface for PostgreSQL administration.
+  - **MongoDB (`mongodb`):** Document-oriented database used for NoSQL data storage.
+  - **Mongo Express (`mongo-express`):** Web interface for browsing and managing MongoDB.
   
 - **Application Layer:**
   - **Web Server (`web`):** Hosts the backend application, built from the project's source code.
@@ -909,7 +1023,7 @@ The `docker-compose-prod.yml` orchestrates a multi-container Docker application 
   - **MinIO Client (`minio_mc`):** Provides command-line tools to interact with the MinIO server.
   
 - **Reverse Proxy and Security:**
-  - **Nginx (`nginx`):** Acts as a reverse proxy, directing traffic to the appropriate backend services and securing specific endpoints with Basic Authentication.
+  - **Nginx (`nginx`):** Acts as a reverse proxy, forwards HTTP and WebSocket traffic to the backend, and protects API documentation endpoints with Basic Authentication.
   
 - **Data Persistence:**
   - **Volumes:** Ensure data persistence for PostgreSQL, PgAdmin, and MinIO across container restarts.

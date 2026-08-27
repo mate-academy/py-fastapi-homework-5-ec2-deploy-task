@@ -7,7 +7,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from config import get_jwt_auth_manager, get_settings, BaseAppSettings, get_accounts_email_notificator
+from config import (
+    get_jwt_auth_manager,
+    get_settings,
+    BaseAppSettings,
+    get_accounts_email_notificator
+)
 from database import (
     get_db,
     UserModel,
@@ -17,6 +22,7 @@ from database import (
     PasswordResetTokenModel,
     RefreshTokenModel
 )
+from user_activity.dependencies import get_user_activity_repository
 from exceptions import BaseSecurityError
 from notifications import EmailSenderInterface
 from schemas import (
@@ -31,7 +37,9 @@ from schemas import (
     TokenRefreshRequestSchema,
     TokenRefreshResponseSchema
 )
+from schemas.user_activity import UserBaseDTO
 from security.interfaces import JWTAuthManagerInterface
+from user_activity.interfaces import UserActivityRepoInterface
 
 router = APIRouter()
 
@@ -68,7 +76,7 @@ router = APIRouter()
 async def register_user(
         user_data: UserRegistrationRequestSchema,
         db: AsyncSession = Depends(get_db),
-        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+        email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator)
 ) -> UserRegistrationResponseSchema:
     """
     Endpoint for user registration.
@@ -135,7 +143,6 @@ async def register_user(
             new_user.email,
             activation_link
         )
-
         return UserRegistrationResponseSchema.model_validate(new_user)
 
 
@@ -459,6 +466,7 @@ async def login_user(
         db: AsyncSession = Depends(get_db),
         settings: BaseAppSettings = Depends(get_settings),
         jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+        activity_repo: UserActivityRepoInterface = Depends(get_user_activity_repository),
 ) -> UserLoginResponseSchema:
     """
     Endpoint for user login.
@@ -471,7 +479,7 @@ async def login_user(
         db (AsyncSession): The asynchronous database session.
         settings (BaseAppSettings): The application settings.
         jwt_manager (JWTAuthManagerInterface): The JWT authentication manager.
-
+        activity_repo (UserActivityRepoInterface): The user activity repository.
     Returns:
         UserLoginResponseSchema: A response containing the access and refresh tokens.
 
@@ -496,6 +504,8 @@ async def login_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is not activated.",
         )
+
+    await activity_repo.create_user_activity(UserBaseDTO.model_validate(user))
 
     jwt_refresh_token = jwt_manager.create_refresh_token({"user_id": user.id})
 
