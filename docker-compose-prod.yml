@@ -92,7 +92,7 @@ services:
       - theater_network
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2024-01-18T22-51-28Z
     container_name: minio-theater
     command: server --console-address ":9001" /data
     ports:
@@ -103,10 +103,11 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
     networks:
       - theater_network
 
