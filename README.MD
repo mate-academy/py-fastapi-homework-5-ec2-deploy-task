@@ -2183,7 +2183,7 @@ To set up the CD pipeline, follow these steps:
    Create a file named `cd-pipeline.yml` inside `.github/workflows/` and paste the CD pipeline YAML configuration provided above.
 
    ```bash
-   touch .github/workflows/cd-pipeline.yml
+   touch .github/workflows/cd-pipeline.yml.yml
    ```
 
 3. **Configure GitHub Secrets**:
@@ -2206,7 +2206,7 @@ To set up the CD pipeline, follow these steps:
    Commit the new workflow file and push it to the `main` branch.
 
    ```bash
-   git add .github/workflows/cd-pipeline.yml
+   git add .github/workflows/cd-pipeline.yml.yml
    git commit -m "Add CD Pipeline for automated deployment"
    git push origin main
    ```

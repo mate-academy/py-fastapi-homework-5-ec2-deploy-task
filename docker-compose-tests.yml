@@ -9,6 +9,8 @@ services:
     environment:
       - PYTHONPATH=/usr/src/fastapi
       - ENVIRONMENT=testing
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
       - EMAIL_HOST=mailhog_theater_test
       - EMAIL_PORT=1025
       - EMAIL_HOST_USER=testuser@mate.com
@@ -27,6 +29,10 @@ services:
         condition: service_started
       minio:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      minio_mc:
+        condition: service_healthy
     volumes:
       - ./src:/usr/src/fastapi
     networks:
@@ -40,9 +46,14 @@ services:
       - "1025:1025"
     networks:
       - theater_network_test
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "8025" ]
+      interval: 5s
+      timeout: 2s
+      retries: 5
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2024-01-18T22-51-28Z
     container_name: minio-theater-test
     command: server --console-address ":9001" /data
     ports:
@@ -57,7 +68,7 @@ services:
     volumes:
       - minio_data_test:/data
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test: [ "CMD-SHELL", "bash -c ':> /dev/tcp/localhost/9000' || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -81,6 +92,11 @@ services:
       - MINIO_STORAGE=theater-storage
     networks:
       - theater_network_test
+    healthcheck:
+      test: [ "CMD", "test", "-f", "/tmp/setup_done" ]
+      interval: 5s
+      timeout: 2s
+      retries: 10
 
   mongodb:
     image: mongo:7
