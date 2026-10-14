@@ -8,7 +8,7 @@ services:
       - "5432:5432"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - postgres_theater_data:/var/lib/postgresql/data/
+      - postgres_theater_data:/var/lib/postgresql
     networks:
       - theater_network
     healthcheck:
