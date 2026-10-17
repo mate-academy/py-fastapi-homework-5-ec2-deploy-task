@@ -51,6 +51,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      minio_mc:
+        condition: service_healthy
       mongodb:
         condition: service_healthy
     volumes:
@@ -92,7 +94,7 @@ services:
       - theater_network
 
   minio:
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: minio-theater
     command: server --console-address ":9001" /data
     ports:
@@ -103,7 +105,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/localhost/9000' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -123,6 +125,11 @@ services:
       - .env
     networks:
       - theater_network
+    healthcheck:
+      test: [ "CMD", "test", "-f", "/tmp/setup_done" ]
+      interval: 5s
+      timeout: 2s
+      retries: 10
 
   mongodb:
     image: mongo:7

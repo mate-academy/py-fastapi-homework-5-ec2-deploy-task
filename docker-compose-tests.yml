@@ -24,8 +24,12 @@ services:
       - .env
     depends_on:
       mailhog:
-        condition: service_started
+        condition: service_healthy
       minio:
+        condition: service_healthy
+      minio_mc:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
     volumes:
       - ./src:/usr/src/fastapi
@@ -34,15 +38,21 @@ services:
 
   mailhog:
     image: mailhog/mailhog
+    platform: linux/amd64
     container_name: mailhog_theater_test
     ports:
       - "8025:8025"
       - "1025:1025"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8025"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
     networks:
       - theater_network_test
 
   minio:
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: minio-theater-test
     command: server --console-address ":9001" /data
     ports:
@@ -57,7 +67,7 @@ services:
     volumes:
       - minio_data_test:/data
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/localhost/9000' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -81,6 +91,11 @@ services:
       - MINIO_STORAGE=theater-storage
     networks:
       - theater_network_test
+    healthcheck:
+      test: [ "CMD", "test", "-f", "/tmp/setup_done" ]
+      interval: 5s
+      timeout: 2s
+      retries: 10
 
   mongodb:
     image: mongo:7
