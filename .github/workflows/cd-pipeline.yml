@@ -36,7 +36,8 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":["sudo -u ubuntu -H bash /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task/commands/deploy.sh"]}' \
+            --parameters '{"commands":["set -e","sudo -u ubuntu -H bash /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task/commands/deploy.sh","sudo -u ubuntu -H docker compose -f /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task/docker-compose-prod.yml restart nginx"]}' \
+
             --query "Command.CommandId" \
             --output text)
 
