@@ -36,8 +36,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters '{"commands":["set -e","sudo -u ubuntu -H bash /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task/commands/deploy.sh","sudo -u ubuntu -H docker compose -f /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task/docker-compose-prod.yml restart nginx"]}' \
-
+            --parameters '{"commands":["set -e","sudo -u ubuntu -H bash /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task/commands/deploy.sh","sudo -u ubuntu -H docker compose -f /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task/docker-compose-prod.yml restart nginx","curl --fail --silent --show-error --retry 12 --retry-delay 5 --retry-connrefused http://127.0.0.1:8000/docs > /dev/null"]}' \
             --query "Command.CommandId" \
             --output text)
 
@@ -70,4 +69,3 @@ jobs:
             --output json
 
           test "$STATUS" = "Success"
-
