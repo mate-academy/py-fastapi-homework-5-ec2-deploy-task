@@ -3,7 +3,10 @@ name: CI Pipeline
 on:
   pull_request:
     branches:
-      - "main"
+      - main
+  push:
+    branches:
+      - main
 
 jobs:
   test-accounts:
@@ -27,9 +30,9 @@ jobs:
         run: |
           poetry run flake8 src
 
-      - name: Run accounts tests
+      - name: Run profiles tests
         run: |
-          poetry run pytest src/tests/test_integration/test_accounts.py
+          poetry run pytest src/tests/test_integration/test_profiles.py
 
   test-movies:
     runs-on: ubuntu-latest
@@ -52,7 +55,7 @@ jobs:
         run: |
           poetry run flake8 src
 
-      - name: Run movies tests
+      - name: Run profiles tests
         run: |
           poetry run pytest src/tests/test_integration/test_movies.py
 
