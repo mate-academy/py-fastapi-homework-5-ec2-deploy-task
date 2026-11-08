@@ -15,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -40,7 +40,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -65,7 +65,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -77,7 +77,7 @@ jobs:
         run: |
           poetry run flake8 src
 
-      - name: Run movies tests
+      - name: Run profiles tests
         run: |
           poetry run pytest src/tests/test_integration/test_profiles.py
 
@@ -91,9 +91,21 @@ jobs:
         run: |
           cp .env.sample .env
 
-      - name: Start Docker Compose and wait for completion
+      - name: Build test images
         run: |
-          docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from web --attach web
+          docker compose -f docker-compose-tests.yml build web minio_mc
+
+      - name: Start test dependencies
+        run: |
+          docker compose -f docker-compose-tests.yml up -d --wait mailhog minio mongodb
+
+      - name: Configure MinIO
+        run: |
+          docker compose -f docker-compose-tests.yml run --rm minio_mc
+
+      - name: Run E2E tests
+        run: |
+          docker compose -f docker-compose-tests.yml run --rm --no-deps web
 
       - name: Cleanup
         if: always()
