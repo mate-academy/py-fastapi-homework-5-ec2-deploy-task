@@ -11,7 +11,7 @@ echo "Fetching latest changes..."
 git fetch origin "$BRANCH"
 
 echo "Updating application code..."
-git reset --hard "origin/$BRANCH"
+git reset --hard FETCH_HEAD
 
 echo "Running database migrations..."
 docker compose -f docker-compose-prod.yml run --rm --no-deps migrator
