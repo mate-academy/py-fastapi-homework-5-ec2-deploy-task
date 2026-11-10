@@ -36,7 +36,7 @@ services:
 
   web:
     restart: always
-    image: theater-api-optimized:latest
+    build: .
     container_name: backend_theater
     command: [ "/bin/bash", "/commands/run_web_server_prod.sh" ]
     env_file:
