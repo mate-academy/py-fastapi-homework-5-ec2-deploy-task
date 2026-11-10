@@ -1,50 +1,44 @@
-FROM python:3.10
+# Build stage
+FROM python:3.11-slim AS builder
 
-# Setting environment variables for Python
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=off
-ENV ALEMBIC_CONFIG=/usr/src/alembic/alembic.ini
+ENV PIP_NO_CACHE_DIR=1
 
-# Installing dependencies
-RUN apt update && apt install -y \
-    gcc \
-    libpq-dev \
-    netcat-openbsd \
-    postgresql-client \
-    dos2unix \
-    && apt clean
+RUN pip install poetry==2.5.1
+RUN python -m venv /opt/venv
 
-# Install Poetry
-RUN python -m pip install --upgrade pip && \
-    pip install poetry
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy dependency files
-COPY ./poetry.lock /usr/src/poetry/poetry.lock
-COPY ./pyproject.toml /usr/src/poetry/pyproject.toml
-COPY ./alembic.ini /usr/src/alembic/alembic.ini
-
-# Configure Poetry to avoid creating a virtual environment
-RUN poetry config virtualenvs.create false
-
-# Selecting a working directory
 WORKDIR /usr/src/poetry
 
-# Install dependencies with Poetry
-RUN poetry lock
-RUN poetry install --no-root --only main
+COPY ./poetry.lock ./pyproject.toml ./
 
-# Selecting a working directory
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-root --only main --no-cache \
+    && /opt/venv/bin/python -m pip uninstall -y pip
+
+# Production stage
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+ENV ALEMBIC_CONFIG=/usr/src/alembic/alembic.ini
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /opt/venv /opt/venv
+
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY ./alembic.ini /usr/src/alembic/alembic.ini
+
 WORKDIR /usr/src/fastapi
 
-# Copy the source code
 COPY ./src .
-
-# Copy commands
 COPY ./commands /commands
 
-# Ensure Unix-style line endings for scripts
-RUN dos2unix /commands/*.sh
-
-# Add execute bit to commands files
 RUN chmod +x /commands/*.sh

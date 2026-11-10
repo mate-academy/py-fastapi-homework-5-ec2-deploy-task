@@ -1,3 +1,4 @@
+
 services:
   db:
     image: 'postgres:17'
@@ -61,7 +62,7 @@ services:
   migrator:
     build: .
     container_name: alembic_migrator_theater
-    command: ["/bin/bash", "/commands/run_migration.sh"]
+    command: [ "/bin/bash", "/commands/run_migration.sh" ]
     depends_on:
       db:
         condition: service_healthy
@@ -75,24 +76,24 @@ services:
       - theater_network
 
   mailhog:
+    image: axllent/mailpit:latest
     restart: always
-    build:
-      context: .
-      dockerfile: ./docker/mailhog/Dockerfile
     container_name: mailhog_theater
-    command: ["/bin/bash", "-c", "/commands/setup_mailhog_auth.sh && /go/bin/MailHog"]
     ports:
-      - "8025:8025"
-      - "1025:1025"
+      - "127.0.0.1:8025:8025"
     env_file:
       - .env
     environment:
-      MH_AUTH_FILE: /mailhog.auth
+      MP_SMTP_AUTH: "${EMAIL_HOST_USER}:${EMAIL_HOST_PASSWORD}"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
     networks:
       - theater_network
 
   minio:
-    image: minio/minio:latest
+    build:
+      context: .
+      dockerfile: docker/minio/Dockerfile
+    image: theater-minio-healthcheck
     container_name: minio-theater
     command: server --console-address ":9001" /data
     ports:
@@ -103,10 +104,11 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - theater_network
 

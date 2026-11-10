@@ -1,31 +1,22 @@
 #!/bin/bash
 
-# Exit the script immediately if any command exits with a non-zero status
 set -e
 
-# Function to handle errors with custom messages
-handle_error() {
-    echo "Error: $1"
-    exit 1
-}
+APP_DIR="/home/ubuntu/py-fastapi-homework-5-ec2-deploy-task"
+BRANCH="dev-py-fastapi-homework-5-ec2-deploy-task"
 
-# Navigate to the application directory
-cd /home/ubuntu/src/mate-fastapi-homework-5 || handle_error "Failed to navigate to the application directory."
+cd "$APP_DIR"
 
-# Fetch the latest changes from the remote repository
-echo "Fetching the latest changes from the remote repository..."
-git fetch origin main || handle_error "Failed to fetch updates from the 'origin' remote."
+echo "Fetching latest changes..."
+git fetch origin "$BRANCH"
 
-# Reset the local repository to match the remote 'main' branch
-echo "Resetting the local repository to match 'origin/main'..."
-git reset --hard origin/main || handle_error "Failed to reset the local repository to 'origin/main'."
+echo "Updating application code..."
+git reset --hard FETCH_HEAD
 
-# (Optional) Pull any new tags from the remote repository
-echo "Fetching tags from the remote repository..."
-git fetch origin --tags || handle_error "Failed to fetch tags from the 'origin' remote."
+echo "Running database migrations..."
+docker compose -f docker-compose-prod.yml run --rm --no-deps migrator
 
-# Build and run Docker containers with Docker Compose v2
-docker compose -f docker-compose-prod.yml up -d --build || handle_error "Failed to build and run Docker containers using docker-compose-prod.yml."
+echo "Restarting backend..."
+docker compose -f docker-compose-prod.yml restart web
 
-# Print a success message upon successful deployment
 echo "Deployment completed successfully."
