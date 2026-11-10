@@ -5,7 +5,7 @@ services:
       dockerfile: ./docker/tests/Dockerfile
     container_name: backend_theater_test
     command: [ "pytest", "-s", "-c", "/usr/src/config/pytest.ini",
-               "-m", "e2e", "--maxfail=5", "--disable-warnings", "-v", "--tb=short"]
+               "-m", "e2e", "--maxfail=5", "--disable-warnings", "-v", "--tb=short" ]
     environment:
       - PYTHONPATH=/usr/src/fastapi
       - ENVIRONMENT=testing
@@ -42,7 +42,7 @@ services:
       - theater_network_test
 
   minio:
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: minio-theater-test
     command: server --console-address ":9001" /data
     ports:
@@ -57,10 +57,11 @@ services:
     volumes:
       - minio_data_test:/data
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test: [ "CMD", "mc", "ready", "local" ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - theater_network_test
 
