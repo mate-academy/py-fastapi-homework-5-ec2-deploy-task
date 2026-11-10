@@ -70,8 +70,11 @@ docs/_build/
 # PyBuilder
 target/
 
-# Virtual environment
+# Environment variables and secrets
 .env
+**/.env
+
+# Virtual environment
 .venv/
 venv/
 
