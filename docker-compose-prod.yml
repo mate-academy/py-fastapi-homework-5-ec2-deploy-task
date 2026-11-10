@@ -127,7 +127,9 @@ services:
       - theater_network
 
   nginx:
-    image: theater-nginx-optimized:latest
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
     container_name: nginx
     restart: always
     ports:
