@@ -60,9 +60,9 @@ services:
       - theater_network
 
   migrator:
-    image: theater-api-optimized:latest
+    build: .
     container_name: alembic_migrator_theater
-    command: ["/bin/bash", "/commands/run_migration.sh"]
+    command: [ "/bin/bash", "/commands/run_migration.sh" ]
     depends_on:
       db:
         condition: service_healthy
