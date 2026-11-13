@@ -2407,5 +2407,3 @@ After ensuring that your `deploy.sh` script works correctly and that Docker Comp
 
 - **CI Pipeline**: Automatically tests code quality and runs integration tests on pull requests to the `main` branch.
 - **CD Pipeline**: Automates the deployment of the application to AWS EC2 upon successful tests, ensuring that the latest changes are live in production.
-
-
