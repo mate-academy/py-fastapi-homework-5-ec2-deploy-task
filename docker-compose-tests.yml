@@ -27,6 +27,10 @@ services:
         condition: service_started
       minio:
         condition: service_healthy
+      minio_mc:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
     volumes:
       - ./src:/usr/src/fastapi
     networks:
@@ -42,7 +46,7 @@ services:
       - theater_network_test
 
   minio:
-    image: minio/minio:latest
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: minio-theater-test
     command: server --console-address ":9001" /data
     ports:
