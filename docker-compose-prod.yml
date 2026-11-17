@@ -92,7 +92,7 @@ services:
       - theater_network
 
   minio:
-    image: minio/minio:latest
+    image: pgsty/silo:RELEASE.2026-11-09T00-00-00Z
     container_name: minio-theater
     command: server --console-address ":9001" /data
     ports:
