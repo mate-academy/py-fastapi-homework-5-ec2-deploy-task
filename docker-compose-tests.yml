@@ -42,7 +42,7 @@ services:
       - theater_network_test
 
   minio:
-    image: minio/minio:latest
+    image: scnd/minio-mirror:RELEASE.2025-09-07T16-13-09Z
     container_name: minio-theater-test
     command: server --console-address ":9001" /data
     ports:
