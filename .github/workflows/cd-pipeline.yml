@@ -15,6 +15,7 @@ jobs:
 
   deploy:
     needs: verify
+    if: vars.EC2_DEPLOY_MODE != 'pull'
     runs-on: ubuntu-latest
     concurrency:
       group: ec2-production
