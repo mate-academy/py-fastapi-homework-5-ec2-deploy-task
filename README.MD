@@ -1,5 +1,28 @@
 ## Deploying the Project on AWS EC2
 
+### Running this fork
+
+1. Prepare an Ubuntu EC2 instance with Git, Docker Engine, Docker Compose v2
+   and curl. Allow HTTP to Nginx and SSH from your deployment client.
+   Clone your fork into `~/src/py-fastapi-homework-5-ec2-deploy-task`.
+2. In the checkout, copy `.env.sample` to `.env` and
+   `docker/nginx/.env.sample` to `docker/nginx/.env`. Set your own credentials
+   in both files and keep the related client and service settings in sync.
+   Run `docker compose -f docker-compose-prod.yml up -d --build`.
+   Open `/docs` at the instance address, sign in with the Nginx credentials,
+   and run `GET /api/v1/theater/movies/` to check the populated database.
+3. In the fork's Actions secrets, set `EC2_HOST`, `EC2_USER`,
+   `EC2_SSH_KEY` and `EC2_KNOWN_HOSTS`. The last value is the host's
+   OpenSSH known_hosts entry, verified against the instance's host key via
+   a trusted channel. The deployment user needs access to the checkout and Docker.
+   For a different checkout location set the Actions variable `EC2_PROJECT_DIR`.
+4. Pull requests to `main` run the CI checks. A push to the fork's `main`
+   runs those checks on the exact revision, then deploys it over SSH and
+   checks the catalogue through Nginx. To retry, run **Deploy to AWS EC2**
+   manually on `main`. The active configuration is in
+   [the deployment workflow](.github/workflows/cd-pipeline.yml) and
+   [the server script](commands/deploy.sh).
+
 Welcome to the AWS EC2 deployment guide for our project! This comprehensive tutorial will walk you through the entire process of deploying your application on an AWS EC2 instance. By following these steps, you'll set up a robust and scalable environment tailored to your project's needs.
 
 ### What You'll Learn

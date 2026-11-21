@@ -1,0 +1,45 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event.repository.fork && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/main.yml
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ec2-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+      - name: Deploy the tested revision
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+          PROJECT_DIR: ${{ vars.EC2_PROJECT_DIR || format('src/{0}', github.event.repository.name) }}
+        run: |
+          set -euo pipefail
+          : "${EC2_HOST:?Missing EC2_HOST}" "${EC2_USER:?Missing EC2_USER}"
+          : "${EC2_SSH_KEY:?Missing EC2_SSH_KEY}" "${EC2_KNOWN_HOSTS:?Missing EC2_KNOWN_HOSTS}"
+          umask 077
+          key=$(mktemp)
+          hosts=$(mktemp)
+          trap 'rm -f "$key" "$hosts"' EXIT
+          printf '%s\n' "$EC2_SSH_KEY" > "$key"
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > "$hosts"
+          printf -v command 'bash -s -- %q %q' "$GITHUB_SHA" "$PROJECT_DIR"
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$hosts" \
+            -i "$key" -- "$EC2_USER@$EC2_HOST" "$command" < commands/deploy.sh
