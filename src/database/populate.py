@@ -339,11 +339,8 @@ async def main() -> None:
         seeder = CSVDatabaseSeeder(settings.PATH_TO_MOVIES_CSV, db_session)
 
         if not await seeder.is_db_populated():
-            try:
-                await seeder.seed()
-                print("Database seeding completed successfully.")
-            except Exception as e:
-                print(f"Failed to seed the database: {e}")
+            await seeder.seed()
+            print("Database seeding completed successfully.")
         else:
             print("Database is already populated. Skipping seeding.")
 

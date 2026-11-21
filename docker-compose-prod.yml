@@ -53,20 +53,20 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_healthy
-    volumes:
-      - ./src:/usr/src/fastapi
+      migrator:
+        condition: service_completed_successfully
+      minio_mc:
+        condition: service_completed_successfully
     networks:
       - theater_network
 
   migrator:
     build: .
     container_name: alembic_migrator_theater
-    command: ["/bin/bash", "/commands/run_migration.sh"]
+    command: ["/bin/sh", "-ec", "alembic upgrade head && python -m database.populate"]
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./src:/usr/src/fastapi
     env_file:
       - .env
     environment:

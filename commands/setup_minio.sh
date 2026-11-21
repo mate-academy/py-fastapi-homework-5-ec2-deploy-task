@@ -1,4 +1,5 @@
 #!/bin/sh
+set -eu
 
 echo "Waiting for MinIO to be ready..."
 sleep 5
