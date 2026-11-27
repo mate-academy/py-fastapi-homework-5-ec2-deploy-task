@@ -10,7 +10,7 @@ handle_error() {
 }
 
 # Navigate to the application directory
-cd /home/ubuntu/src/mate-fastapi-homework-5 || handle_error "Failed to navigate to the application directory."
+cd /root/src/mate-fastapi-homework-5 || handle_error "Failed to navigate to the application directory."
 
 # Fetch the latest changes from the remote repository
 echo "Fetching the latest changes from the remote repository..."
@@ -18,7 +18,7 @@ git fetch origin main || handle_error "Failed to fetch updates from the 'origin'
 
 # Reset the local repository to match the remote 'main' branch
 echo "Resetting the local repository to match 'origin/main'..."
-git reset --hard origin/main || handle_error "Failed to reset the local repository to 'origin/main'."
+git checkout -B main origin/main || handle_error "Failed to reset the local repository to 'origin/main'."
 
 # (Optional) Pull any new tags from the remote repository
 echo "Fetching tags from the remote repository..."
