@@ -90,7 +90,7 @@ services:
       - theater_network
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: minio-theater
     command: server --console-address ":9001" /data
     ports:

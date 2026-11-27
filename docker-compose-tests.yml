@@ -40,7 +40,7 @@ services:
       - theater_network_test
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: minio-theater-test
     command: server --console-address ":9001" /data
     ports:
