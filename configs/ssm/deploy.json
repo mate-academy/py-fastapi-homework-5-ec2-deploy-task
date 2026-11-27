@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "2.2",
+  "description": "Deploy a tested revision of Online Cinema on EC2.",
+  "parameters": {
+    "Revision": {
+      "type": "String",
+      "description": "Full Git commit SHA tested by GitHub Actions.",
+      "allowedPattern": "^[0-9a-f]{40}$"
+    }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "deployOnlineCinema",
+      "inputs": {
+        "timeoutSeconds": "900",
+        "runCommand": [
+          "exec runuser -u ubuntu -- bash /home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task/commands/deploy.sh \"{{ Revision }}\""
+        ]
+      }
+    }
+  ]
+}

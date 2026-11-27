@@ -15,32 +15,69 @@ jobs:
 
   deploy:
     needs: verify
-    if: vars.EC2_DEPLOY_MODE != 'pull'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      id-token: write
     concurrency:
       group: ec2-production
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v6
-      - name: Deploy the tested revision
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@45666896f5d8e0f10ae255413f3a4cdd03bdc8f5 # v6.3.1
+        with:
+          role-to-assume: ${{ vars.EC2_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: online-cinema-${{ github.run_id }}
+
+      - name: Deploy the tested revision and wait for EC2
         shell: bash
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
-          PROJECT_DIR: ${{ vars.EC2_PROJECT_DIR || format('src/{0}', github.event.repository.name) }}
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          AWS_PAGER: ""
         run: |
           set -euo pipefail
-          : "${EC2_HOST:?Missing EC2_HOST}" "${EC2_USER:?Missing EC2_USER}"
-          : "${EC2_SSH_KEY:?Missing EC2_SSH_KEY}" "${EC2_KNOWN_HOSTS:?Missing EC2_KNOWN_HOSTS}"
-          umask 077
-          key=$(mktemp)
-          hosts=$(mktemp)
-          trap 'rm -f "$key" "$hosts"' EXIT
-          printf '%s\n' "$EC2_SSH_KEY" > "$key"
-          printf '%s\n' "$EC2_KNOWN_HOSTS" > "$hosts"
-          printf -v command 'bash -s -- %q %q' "$GITHUB_SHA" "$PROJECT_DIR"
-          ssh -o BatchMode=yes -o ConnectTimeout=15 -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$hosts" \
-            -i "$key" -- "$EC2_USER@$EC2_HOST" "$command" < commands/deploy.sh
+          : "${INSTANCE_ID:?Missing EC2_INSTANCE_ID}"
+          command_id=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name MateOnlineCinemaDeploy \
+            --parameters "Revision=$GITHUB_SHA" \
+            --comment "GitHub Actions run $GITHUB_RUN_ID, attempt $GITHUB_RUN_ATTEMPT" \
+            --query Command.CommandId --output text)
+          printf 'Systems Manager command %s for revision %s\n' "$command_id" "$GITHUB_SHA"
+
+          error_log=$(mktemp)
+          trap 'rm -f "$error_log"' EXIT
+          deadline=$((SECONDS + 960))
+          while (( SECONDS < deadline )); do
+            if result=$(aws ssm get-command-invocation \
+              --instance-id "$INSTANCE_ID" --command-id "$command_id" \
+              --output json 2>"$error_log"); then
+              status=$(jq -r .Status <<< "$result")
+              case "$status" in
+                Pending|InProgress|Delayed|Cancelling) ;;
+                *)
+                  jq -r '.StatusDetails, .StandardOutputContent, .StandardErrorContent' <<< "$result"
+                  [[ "$status" == Success ]]
+                  exit ;;
+              esac
+            elif ! grep -q InvocationDoesNotExist "$error_log"; then
+              cat "$error_log" >&2
+              exit 1
+            fi
+            sleep 8
+          done
+          echo "Timed out waiting for the EC2 deployment." >&2
+          exit 1
+
+      - name: Verify the public movie catalogue
+        shell: bash
+        env:
+          APP_URL: ${{ vars.EC2_APPLICATION_URL }}
+        run: |
+          set -euo pipefail
+          : "${APP_URL:?Missing EC2_APPLICATION_URL}"
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            --retry-delay 3 --max-time 10 \
+            "${APP_URL%/}/api/v1/theater/movies/?per_page=1" |
+            jq -e '.movies | type == "array" and length > 0'

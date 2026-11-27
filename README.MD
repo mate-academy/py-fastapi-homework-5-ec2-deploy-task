@@ -1,50 +1,27 @@
 ## Deploying the Project on AWS EC2
 
-### Running this fork
+### Deployment for this fork
 
-1. Prepare an Ubuntu EC2 instance with Git, Docker Engine, Docker Compose v2
-   and curl. Allow HTTP to Nginx and SSH from your deployment client.
-   Clone your fork into `~/src/py-fastapi-homework-5-ec2-deploy-task`.
-2. In the checkout, copy `.env.sample` to `.env` and
-   `docker/nginx/.env.sample` to `docker/nginx/.env`. Set your own credentials
-   in both files and keep the related client and service settings in sync.
-   Run `docker compose -f docker-compose-prod.yml up -d --build`.
-   Open `/docs` at the instance address, sign in with the Nginx credentials,
-   and run `GET /api/v1/theater/movies/` to check the populated database.
-3. On a public fork, set the Actions repository variable `EC2_DEPLOY_MODE`
-   to `pull`. In this mode, GitHub Actions verifies each revision pushed to
-   `main`. An EC2 timer checks the public GitHub API over HTTPS and deploys
-   the current revision when its checks pass. SSH can remain restricted to the
-   deployment user's IP address.
-4. Install the timer on the Ubuntu instance. Run these commands from the server
-   checkout and use your own fork's owner and repository name in the environment file.
-
-   ```sh
-   sudo install -D -m 0644 commands/pull_deploy.py /usr/local/libexec/mate-fastapi-pull-deploy.py
-   sudo install -m 0644 configs/systemd/mate-ec2-deploy.* /etc/systemd/system/
-   sudoedit /etc/default/mate-ec2-deploy
-   ```
-
-   ```ini
-   GITHUB_DEPLOY_REPOSITORY=your-user/py-fastapi-homework-5-ec2-deploy-task
-   EC2_PROJECT_DIR=/home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task
-   ```
-
-   ```sh
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now mate-ec2-deploy.timer
-   sudo journalctl -u mate-ec2-deploy.service
-   ```
-
-   The service deploys the verified commit and checks the catalogue through
-   Nginx before recording success. To rerun the checks, use **Deploy to AWS EC2**
-   on the fork's `main` branch. Pull requests to `main` continue to run CI.
-
-The [deployment workflow](.github/workflows/cd-pipeline.yml) also supports SSH.
-To use that mode, leave `EC2_DEPLOY_MODE` unset and provide the Actions secrets
-`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY` and `EC2_KNOWN_HOSTS`. Verify the SSH
-host key through a trusted channel. For a different server checkout path,
-set the Actions variable `EC2_PROJECT_DIR`.
+1. Use an Ubuntu EC2 instance with Git, Docker Engine, Docker Compose v2, and
+   curl. Clone the fork into `/home/ubuntu/src/py-fastapi-homework-5-ec2-deploy-task`.
+   Copy `.env.sample` to `.env` and `docker/nginx/.env.sample` to
+   `docker/nginx/.env` and set the production values on the server.
+2. Register the instance with AWS Systems Manager. Create the
+   `MateOnlineCinemaDeploy` Command document using
+   [configs/ssm/deploy.json](configs/ssm/deploy.json).
+3. Configure GitHub's OIDC provider in AWS. The deployment role trusts
+   `repo:<owner>/py-fastapi-homework-5-ec2-deploy-task:ref:refs/heads/main`
+   with audience `sts.amazonaws.com`. Give the role `ssm:SendCommand`
+   for the deployment document and the target EC2 instance, and
+   `ssm:GetCommandInvocation` in the instance's region.
+4. Set the GitHub Actions repository variables `EC2_DEPLOY_ROLE_ARN`,
+   `AWS_REGION`, `EC2_INSTANCE_ID`, and `EC2_APPLICATION_URL`.
+   Use the application's base URL in the last variable.
+5. Push to the fork's `main` branch or run **Deploy to AWS EC2** for
+   `main` in GitHub Actions. The workflow runs all four CI jobs, sends the
+   tested revision to EC2, waits for the command to finish, and checks
+   the public movie catalogue. Swagger is available at `/docs` with
+   the Nginx credentials.
 
 Welcome to the AWS EC2 deployment guide for our project! This comprehensive tutorial will walk you through the entire process of deploying your application on an AWS EC2 instance. By following these steps, you'll set up a robust and scalable environment tailored to your project's needs.
 
@@ -2024,7 +2001,9 @@ test-e2e:
 
 ---
 
-### CD (Continuous Deployment)
+### SSH deployment reference from the starter project
+
+This section describes the starter workflow. For this fork, follow [Deployment for this fork](#deployment-for-this-fork).
 
 The Continuous Deployment (CD) pipeline automates the deployment of your application to AWS EC2 instances after successful tests. This ensures that your latest changes are reflected in the production environment without manual intervention.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# The workflow streams this script over SSH and passes the server checkout.
+# Systems Manager runs this script on EC2 with the revision tested by CI.
 # For a manual run, locate the checkout relative to this file.
 if [[ $# -ge 2 ]]; then
     cd -- "$2"
