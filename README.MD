@@ -2409,3 +2409,5 @@ After ensuring that your `deploy.sh` script works correctly and that Docker Comp
 - **CD Pipeline**: Automates the deployment of the application to AWS EC2 upon successful tests, ensuring that the latest changes are live in production.
 
 By leveraging GitHub Actions for both CI and CD, you ensure a robust and automated workflow that maintains high code standards and facilitates smooth deployments.
+ 
+ 
