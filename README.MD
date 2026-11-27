@@ -409,7 +409,7 @@ db:
     - "5432:5432"
   volumes:
     - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    - postgres_theater_data:/var/lib/postgresql/data/
+    - postgres_theater_data:/var/lib/postgresql
   networks:
     - theater_network
   healthcheck:
@@ -430,7 +430,7 @@ db:
   - **Ports:** Maps the container's port `5432` to the host's port `5432`, allowing external access if needed.
   - **Volumes:**
     - `./init.sql:/docker-entrypoint-initdb.d/init.sql`: Executes the `init.sql` script on container initialization to set up the database schema and seed data.
-    - `postgres_theater_data:/var/lib/postgresql/data/`: Persists PostgreSQL data, ensuring data retention across container restarts.
+    - `postgres_theater_data:/var/lib/postgresql`: Persists PostgreSQL data, ensuring data retention across container restarts.
   - **Networks:** Connected to the `theater_network` for inter-service communication.
   - **Healthcheck:** Uses `pg_isready` to verify the database is ready to accept connections, enhancing reliability by ensuring dependent services wait until the database is operational.
 
