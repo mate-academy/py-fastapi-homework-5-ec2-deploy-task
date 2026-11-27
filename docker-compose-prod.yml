@@ -92,7 +92,9 @@ services:
       - theater_network
 
   minio:
-    image: minio/minio:latest
+    build:
+      context: .
+      dockerfile: docker/minio/Dockerfile
     container_name: minio-theater
     command: server --console-address ":9001" /data
     ports:
