@@ -10,7 +10,7 @@
    `MateOnlineCinemaDeploy` Command document using
    [configs/ssm/deploy.json](configs/ssm/deploy.json).
 3. Configure GitHub's OIDC provider in AWS. The deployment role trusts
-   `repo:<owner>/py-fastapi-homework-5-ec2-deploy-task:ref:refs/heads/main`
+   `repo:<owner>@<owner-id>/py-fastapi-homework-5-ec2-deploy-task@<repo-id>:ref:refs/heads/main`
    with audience `sts.amazonaws.com`. Give the role `ssm:SendCommand`
    for the deployment document and the target EC2 instance, and
    `ssm:GetCommandInvocation` in the instance's region.
