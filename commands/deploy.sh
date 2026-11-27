@@ -1,31 +1,30 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Exit the script immediately if any command exits with a non-zero status
-set -e
+# Systems Manager runs this script on EC2 with the revision tested by CI.
+# For a manual run, locate the checkout relative to this file.
+if [[ $# -ge 2 ]]; then
+    cd -- "$2"
+else
+    cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+fi
 
-# Function to handle errors with custom messages
-handle_error() {
-    echo "Error: $1"
+exec 9>"$(git rev-parse --git-dir)/ec2-deploy.lock"
+flock 9
+git fetch origin refs/heads/main
+latest=$(git rev-parse FETCH_HEAD)
+revision=${1:-$latest}
+if [[ "$revision" != "$latest" ]]; then
+    echo "The tested revision is no longer the tip of main." >&2
     exit 1
-}
-
-# Navigate to the application directory
-cd /home/ubuntu/src/mate-fastapi-homework-5 || handle_error "Failed to navigate to the application directory."
-
-# Fetch the latest changes from the remote repository
-echo "Fetching the latest changes from the remote repository..."
-git fetch origin main || handle_error "Failed to fetch updates from the 'origin' remote."
-
-# Reset the local repository to match the remote 'main' branch
-echo "Resetting the local repository to match 'origin/main'..."
-git reset --hard origin/main || handle_error "Failed to reset the local repository to 'origin/main'."
-
-# (Optional) Pull any new tags from the remote repository
-echo "Fetching tags from the remote repository..."
-git fetch origin --tags || handle_error "Failed to fetch tags from the 'origin' remote."
-
-# Build and run Docker containers with Docker Compose v2
-docker compose -f docker-compose-prod.yml up -d --build || handle_error "Failed to build and run Docker containers using docker-compose-prod.yml."
-
-# Print a success message upon successful deployment
-echo "Deployment completed successfully."
+fi
+if ! git diff --quiet HEAD --; then
+    echo "The server checkout has uncommitted changes." >&2
+    exit 1
+fi
+git checkout --detach "$revision"
+docker compose -f docker-compose-prod.yml up -d --build
+curl --fail --silent --show-error --retry 45 --retry-all-errors \
+    --retry-delay 2 --max-time 5 --output /dev/null \
+    'http://127.0.0.1/api/v1/theater/movies/?per_page=1'
+printf 'Deployed %s. The movie catalogue is responding.\n' "$revision"
